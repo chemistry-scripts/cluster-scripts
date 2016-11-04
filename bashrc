@@ -1,0 +1,80 @@
+#.bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
+# Setup path
+export PATH=$PATH:$HOME/.local/bin
+
+# Intel compilers
+module load intel/16.0.1
+
+# Gaussian
+module load gaussian
+source ${g09root}/g09/bsd/g09.profile
+
+# ADF
+module load adf/2014.04
+
+# Python
+module load python/3.5.1
+
+# User specific aliases and functions
+
+alias almostFinished="echo '************************************';
+                      echo 'Finished Steps:' ;
+                      grep -r --include '*.log' 'cpu time' ~/*
+                     "
+alias finished="echo '************************************';
+                echo 'Finished Computations:' ;
+                ls -R ~/ | grep '\.e' -c ;
+                ls -R ~/ | grep '\.e'
+               "
+
+alias  nbtour="echo '************************************';
+               echo 'Nombre de Tours :' ;
+               grep -r --include '*.log' -c Predicted ~/*
+              "
+
+alias   count="echo '************************************';
+               echo 'Number of YESs:' ;
+               grep -r --include '*.log' -c YES ~/*
+              "
+
+alias  encours="echo '************************************';
+                echo 'Running Computations: ' ;
+                squeue -u enicolas ;
+                echo '************************************';
+                echo 'Total Number of Computations:' ;
+                squeue -u enicolas | grep enicolas -c
+               "
+
+alias  lowFreq="echo '************************************';
+                echo 'Three Lowest Frequencies: ' ;
+                echo '************************************';
+                grep -r --include '*.log' -A6 Harmonic ~/*
+               "
+
+alias vectors="echo '************************************';
+               echo 'Computed Vectors:';
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' ~/* | sed 's/\(produced\).*/\1/g'
+              "
+
+alias warning="echo '************************************';
+               echo 'Warning Produced: ' ;
+               grep -r --include '*.log' Warning ~/*
+              "
+
+alias predictions="find /home/enicolas -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+
+alias emmanuel="encours nbtour count almostFinished finished"
+
+alias complet="emmanuel vectors warning lowFreq"
+
+alias emacs="emacs -nw"
+
+# show hidden files
+alias la='ls -Al'
+alias ll='ls -lh'
