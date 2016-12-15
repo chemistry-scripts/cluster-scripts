@@ -213,7 +213,7 @@ def create_run_file(input_file, output, runvalues):
                 'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOBID\n',
                 'mkdir -p $GAUSS_SCRDIR\n',
                 '\n',
-                '# Copy files \n',
+                '# Copy input file\n',
                 'cp -f ' + shlexnames['inputname'] + ' $GAUSS_SCRDIR\n\n'])
     # If chk file is defined in input and exists, copy it in scratch
     if runvalues['chk'] is not None:
@@ -276,7 +276,10 @@ def create_run_file(input_file, output, runvalues):
                 '\n'])
     out.extend(['# If Gaussian crashed or was stopped somehow, copy the rwf\n',
                 'for f in $GAUSS_SCRDIR/*rwf; do\n',
-                '    [ -f "$f" ] && cp $f $SLURM_SUBMIT_DIR\n',
+                '    mkdir -p $SCRATCHDIR/gaussian/rwf'
+                # Copy rwf as JobName_Gau-123456.rwf
+                '    [ -f "$f" ] && cp $f $SCRATCHDIR/gaussian/rwf/' +
+                shlexnames['basename'] + '_$f\n',
                 'done\n',
                 '\n',
                 '# Empty Scratch directory\n',
