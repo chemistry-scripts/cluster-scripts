@@ -4,10 +4,10 @@
 """
 Submit script for Gaussian09 for Computing Clusters
 Original script for LISA by Jos Mulder
-email j.r.mulder@vu.nl
+email j.r.mulder -at- vu.nl
 Adapted for Thorium cluster
 Last Update 2016-11-03 by Emmanuel Nicolas
-email emmanuel.nicolas@cea.fr
+email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
 
@@ -211,7 +211,7 @@ def create_run_file(input_file, output, runvalues):
            ''
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
            '#SBATCH --mail-type=ALL\n',
-           '#SBATCH --mail-user=emmanuel.nicolas@cea.fr\n',
+           '#SBATCH --mail-user=user@server.org\n',
            '#SBATCH --nodes=1\n',
            '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
            '#SBATCH --mem=' + str(memory) + '\n',

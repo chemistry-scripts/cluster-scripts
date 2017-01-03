@@ -2,9 +2,9 @@
 
 # Submit script for Gaussian 2003 and 2009 for the lisa cluster
 # Created by Jos Mulder
-# email j.r.mulder@vu.nl
+# email j.r.mulder -at- vu.nl
 # Last Update 2015-11-25 by Emmanuel Nicolas
-# email e.c.nicolas@vu.nl
+# email e.c.nicolas -at- vu.nl
 
 import getopt
 import sys

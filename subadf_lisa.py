@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # Submit script for ADF2014 for the lisa cluster
 # This adds automatic moving of TAPE21 file, mail at beginning and end of computation
-# to the user, and a few others details, such as automatic selection of queue and max time. 
+# to the user, and a few others details, such as automatic selection of queue and max time.
 # Created by Emmanuel Nicolas
-# email e.c.nicolas@vu.nl
+# email e.c.nicolas -at- vu.nl
 
-import getopt, sys, os, fileinput 
+import getopt, sys, os, fileinput
 
 StartupFlag = "###--- File automatically edited by subadf script ---###"
 
@@ -16,7 +16,7 @@ def main():
     input = str(getinput(sys.argv[-1]))
     # Avoid end of line problems due to conversion between Windows and Unix file endings
     os.system('dos2unix %s' %input)
-    runvalues = flagcontrol(runvalues, sys.argv[0:-1]) 
+    runvalues = flagcontrol(runvalues, sys.argv[0:-1])
     # Save current path
     pathname = os.getcwd()
     # Test if inputfile has not already been submitted
@@ -29,15 +29,15 @@ def main():
             sys.exit()
     # Prep input file
     prepFile(input,pathname,runvalues)
-    
+
     # Submit computation
     os.system("qsub {jobfile}".format(jobfile=input))
     print("Job {jobfile} submitted on queue {queue}  with a walltime of {walltime} hours".format(queue=runvalues["queue"], jobfile=input, walltime=runvalues["walltime"]))
 
-#### the default values ######## 
+#### the default values ########
 def getdefaults():
     return {"walltime" : "120:00", "nodes" : "1", "queue" : "p16"}
- 
+
 ### checks if the input file exists #####
 def getinput(input):
     if input == "--help":
@@ -49,13 +49,13 @@ def getinput(input):
     else:
         if not os.path.exists(input):
             print("The job script file given does not exist")
-            sys.exit()  
+            sys.exit()
         else:
             return input
 
 ## This function checks the flags and adjust the default values  ##
 def flagcontrol(runvalues, flaglist):
-    try:    
+    try:
         opts, args = getopt.getopt(flaglist[1:], "v:q:n:t:")
     except getopt.GetoptError as err:
         print(str(err)) # will print something like "option -a not recognized"
@@ -66,10 +66,10 @@ def flagcontrol(runvalues, flaglist):
         elif o == "-q":
             runvalues["queue"] = a
         elif o == "-t":
-            runvalues["walltime"] = a   
+            runvalues["walltime"] = a
         else:
             assert False, "unhandled option"
-    return runvalues  
+    return runvalues
 
 ## This function modifies the input file, inserting mail functions and TAPE21 saving
 def prepFile(input,pathname,runvalues):
@@ -80,18 +80,18 @@ def prepFile(input,pathname,runvalues):
         with open(tmpFile, "w+") as outFile: # Need a try statement if file already exists, or use tempfile mechanisms from python3
             # Add Flag at start, indicating that the file has been edited already, not to start it twice
             outFile.write(StartupFlag+'\n')
-            
+
             # Setup PBS Commands
             outFile.write("#PBS -lnodes={nodes}:ppn=16\n".format(nodes=runvalues["nodes"]))
             outFile.write("#PBS -S /bin/bash\n")
             outFile.write("#PBS -lwalltime="+ runvalues["walltime"]+":00\n")
-            
+
             # Modules, Folders, etc.
             outFile.write(lisaSpecifics())
-            
+
             # Mail at the beginning of the job
             outFile.write(mailBeginning)
-            
+
             # Main adf input file, adding the output file
             for i in inFile:
                 if i.find("<<eor") == -1:
@@ -102,7 +102,7 @@ def prepFile(input,pathname,runvalues):
                     i = i.strip()
                     i += " >> {fileName}.out\n".format(fileName=input[:-4])
                     outFile.write(i)
-            
+
             # move TAPE13 file if it exists (for failed calculations)
             t13File = pathname + "/" + input[:-3] + "t13"
             outFile.write("if [ -f TAPE13 ];\n")
@@ -162,7 +162,7 @@ cd $PBS_O_WORKDIR
 
 """
 
-def help(): 
+def help():
     return   """Usage
 -----
 subadf.py [options] jobscript
@@ -182,7 +182,7 @@ Queues
 ------
 QUEUE                 ALIASES        DESCRIPTION
 cores12               p12            Dual-processor Hexa-Core Intel Xeon. Time limit 120:00.
-cores16               p16            Dual-Processor 8-Core Intel Sandy-Bride. Time limit 120:00. 
+cores16               p16            Dual-Processor 8-Core Intel Sandy-Bride. Time limit 120:00.
 
 Defaults
 -----------------------
