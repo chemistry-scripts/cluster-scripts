@@ -1,0 +1,28 @@
+#.bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
+# Setup path
+export PATH=$PATH:$HOME/.local/bin
+
+# Intel compilers
+module load intel/16.0.1
+
+# Gaussian
+module load gaussian
+source ${g09root}/g09/bsd/g09.profile
+
+# ADF
+module load adf/2014.04
+
+# Python
+module load python/3.5.1
+
+alias emacs="emacs -nw"
+
+# show hidden files
+alias la='ls -Al'
+alias ll='ls -lh'
