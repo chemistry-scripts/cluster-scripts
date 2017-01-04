@@ -10,19 +10,6 @@ if [ -f ~/.bashrc ]; then
     . ~/.bashrc
 fi
 
-# the rest of this file is commented out.
-
-# set PATH so it includes user's private bin if it exists
-#if [ -d ~/bin ] ; then
-#    PATH=~/bin:"${PATH}"
-#fi
-
-# do the same with MANPATH
-#if [ -d ~/man ]; then
-#    MANPATH=~/man${MANPATH:-:}
-#    export MANPATH
-#fi
-
 #===============================================================
 # Define some colors first:
 red='\e[0;31m'
@@ -54,14 +41,68 @@ alias du='du -kh'
 alias df='df -kTh'
 
 # The 'ls' family (this assumes you use the GNU ls)
-alias la='ls -Al'               # show hidden files
+alias la='ls -Al'           # show hidden files
 alias ls='ls -hF --color'	# add colors for filetype recognition
-alias ll='ls -l'                # list files
-alias lx='ls -lXB'              # sort by extension
-alias lk='ls -lSr'              # sort by size
-alias lc='ls -lcr'		# sort by change time  
-alias lu='ls -lur'		# sort by access time   
-alias lr='ls -lR'               # recursive ls
-alias lt='ls -ltr'              # sort by date
-alias lm='ls -al |more'         # pipe through 'more'
-alias tree='tree -Csu'		# nice alternative to 'ls'
+alias ll='ls -l'            # list files
+alias lx='ls -lXB'          # sort by extension
+alias lk='ls -lSr'          # sort by size
+alias lc='ls -lcr'          # sort by change time
+alias lu='ls -lur'          # sort by access time
+alias lr='ls -lR'           # recursive ls
+alias lt='ls -ltr'          # sort by date
+alias lm='ls -al |more'     # pipe through 'more'
+alias tree='tree -Csu'      # nice alternative to 'ls'
+
+# emacs in no-window mode
+alias emacs="emacs -nw"
+
+# User specific aliases and functions
+alias almostFinished="echo '************************************';
+                      echo 'Finished Steps:' ;
+                      grep -r --include '*.log' 'cpu time' ~/*
+                     "
+alias finished="echo '************************************';
+                echo 'Finished Computations:' ;
+                ls -R ~/ | grep '\.e' -c ;
+                ls -R ~/ | grep '\.e'
+               "
+
+alias nbtour="echo '************************************';
+              echo 'Nombre de Tours :' ;
+              grep -r --include '*.log' -c Predicted ~/*
+             "
+
+alias count="echo '************************************';
+             echo 'Number of YESs:' ;
+             grep -r --include '*.log' -c YES ~/*
+            "
+
+alias encours="echo '************************************';
+               echo 'Running Computations: ' ;
+               squeue -u enicolas ;
+               echo '************************************';
+               echo 'Total Number of Computations:' ;
+               squeue -u enicolas | grep enicolas -c
+              "
+
+alias lowFreq="echo '************************************';
+               echo 'Three Lowest Frequencies: ' ;
+               echo '************************************';
+               grep -r --include '*.log' -A6 Harmonic ~/*
+              "
+
+alias vectors="echo '************************************';
+               echo 'Computed Vectors:';
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' ~/* | sed 's/\(produced\).*/\1/g'
+              "
+
+alias warning="echo '************************************';
+               echo 'Warning Produced: ' ;
+               grep -r --include '*.log' Warning ~/*
+              "
+
+alias predictions="find /home/enicolas -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+
+alias username="encours nbtour count almostFinished finished"
+
+alias complet="username vectors warning lowFreq"
