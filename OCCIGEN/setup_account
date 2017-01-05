@@ -16,9 +16,9 @@ echo -n "Enter your first name and press [ENTER]: "
 read firstname
 
 # Copy files and change emails and firstnames when necessary
-sed -e 's/user@server.org/${mail}/' < forward > ~/.forward
-sed -e 's/username/${firstname}' < bash_profile > ~/.bash_profile
+sed -e "s/user@server.org/${mail}/" < forward > ~/.forward
+sed -e "s/username/${firstname}/" < bash_profile > ~/.bash_profile
 cp -f bashrc ~/.bashrc
 cp -f emacs ~/.emacs
-sed -e 's/user@server.org/${mail}/' < subadf.py > ~/.local/bin/subadf.py
-sed -e 's/user@server.org/${mail}/' < subg09.py > ~/.local/bin/subg09.py
+sed -e "s/user@server.org/${mail}/" < subadf.py > ~/.local/bin/subadf.py
+sed -e "s/user@server.org/${mail}/" < subg09.py > ~/.local/bin/subg09.py
