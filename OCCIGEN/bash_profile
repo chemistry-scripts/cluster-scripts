@@ -59,30 +59,29 @@ alias emacs="emacs -nw"
 # User specific aliases and functions
 alias almostFinished="echo '************************************';
                       echo 'Finished Steps:' ;
-                      grep -r --include '*.log' 'cpu time' ~/*
+                      grep -r --include '*.log' 'cpu time' $SCRATCHDIR/gaussian
                      "
 alias finished="echo '************************************';
                 echo 'Finished Computations:' ;
-                ls -R ~/ | grep '\.e' -c ;
-                ls -R ~/ | grep '\.e'
+                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian finished ~/*
                "
 
 alias nbtour="echo '************************************';
               echo 'Nombre de Tours :' ;
-              grep -r --include '*.log' -c Predicted ~/*
+              grep -r --include '*.log' -c Predicted $SCRATCHDIR/gaussian
              "
 
 alias count="echo '************************************';
              echo 'Number of YESs:' ;
-             grep -r --include '*.log' -c YES ~/*
+             grep -r --include '*.log' -c YES $SCRATCHDIR/gaussian
             "
 
 alias encours="echo '************************************';
                echo 'Running Computations: ' ;
-               squeue -u enicolas ;
+               squeue -o '%.8i %.9P %.20j %.8T %.9M %.5D %.16R %.8c %.4C' -u $USER ;
                echo '************************************';
                echo 'Total Number of Computations:' ;
-               squeue -u enicolas | grep enicolas -c
+               squeue -u $USER | grep $USER -c
               "
 
 alias lowFreq="echo '************************************';
@@ -93,16 +92,22 @@ alias lowFreq="echo '************************************';
 
 alias vectors="echo '************************************';
                echo 'Computed Vectors:';
-               grep -r --include '*.log' -E 'vectors produced|vectors were produced' ~/* | sed 's/\(produced\).*/\1/g'
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $SCRATCHDIR/gaussian | sed 's/\(produced\).*/\1/g'
               "
 
 alias warning="echo '************************************';
                echo 'Warning Produced: ' ;
-               grep -r --include '*.log' Warning ~/*
+               grep -r --include '*.log' Warning $SCRATCHDIR/gaussian
+               grep -r --include '*.log' --exclude-dir=scratchGaussian Warning ~/*
               "
 
-alias predictions="find /home/enicolas -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+alias predictions="find $SCRATCHDIR/gaussian -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
 
 alias username="encours nbtour count almostFinished finished"
 
 alias complet="username vectors warning lowFreq"
+
+alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.8c %.4C" -u $USER'
+
+alias watchLogs='watch tail -n20 ~/scratchGaussian/*/*g'
+alias watchQueue='watch "squeue -o '"'"'%.8i %.9P %10u %.20j %.8T %.9M %.12l %.5D %.16R %.8c %.4C'"'"' -u \$USER"'
