@@ -279,7 +279,7 @@ def create_run_file(input_file, output, runvalues):
                 '    mkdir -p $SCRATCHDIR/gaussian/rwf\n'
                 # Copy rwf as JobName_123456.rwf
                 '    [ -f "$f" ] && cp $f $SCRATCHDIR/gaussian/rwf/' +
-                shlexnames['basename'] + '_$SLURM_JOBID\n',
+                shlexnames['basename'] + '_$SLURM_JOBID.rwf\n',
                 'done\n',
                 '\n',
                 '# Empty Scratch directory\n',
