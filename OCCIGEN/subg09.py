@@ -277,9 +277,9 @@ def create_run_file(input_file, output, runvalues):
     out.extend(['# If Gaussian crashed or was stopped somehow, copy the rwf\n',
                 'for f in $GAUSS_SCRDIR/*rwf; do\n',
                 '    mkdir -p $SCRATCHDIR/gaussian/rwf\n'
-                # Copy rwf as JobName_Gau-123456.rwf
+                # Copy rwf as JobName_123456.rwf
                 '    [ -f "$f" ] && cp $f $SCRATCHDIR/gaussian/rwf/' +
-                shlexnames['basename'] + '_$f\n',
+                shlexnames['basename'] + '_$SLURM_JOBID\n',
                 'done\n',
                 '\n',
                 '# Empty Scratch directory\n',
