@@ -3,10 +3,7 @@
 
 """
 Submit script for Gaussian09 for Computing Clusters
-Original script for LISA by Jos Mulder
-email j.r.mulder -at- vu.nl
-Adapted for Cines OCCIGEN cluster
-Last Update 2016-02-04 by Emmanuel Nicolas
+Last Update 2017-01-25 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -41,7 +38,7 @@ def main():
         print(" The corresponding .sh file already exists ")
         print("Make sure it is not a mistake, erase it and rerun the script")
         print("Alternatively, you can submit the job directly with:")
-        print("sbatch {0}".format(shlex.quote(output)))
+        print("llsubmit {0}".format(shlex.quote(output)))
         sys.exit()
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
@@ -53,7 +50,7 @@ def main():
     # Create run file for gaussian
     create_run_file(input_file_name, output, runvalues)
     # Submit the script
-    os.system('sbatch {0}'.format(shlex.quote(output)))
+    os.system('llsubmit {0}'.format(shlex.quote(output)))
     print("job {0} submitted with a walltime of {1} hours"
           .format(input_file_name, runvalues["walltime"]))
 
@@ -177,12 +174,13 @@ def create_run_file(input_file, output, runvalues):
     """
 
     # Compute memory required:
-    # max of 5GB per core (default), or memory from input + 2GB for overhead.
+    # max of 3.5GB per core (default), minus 1GB per core (eq to 2.5*ncores-1),
+    # or memory from input + 2GB for overhead.
     if runvalues['memory'] is not None:
-        if runvalues['memory'] == runvalues['cores'] * 5000:
-            memory = runvalues['cores'] * 5000
+        if runvalues['memory'] == runvalues['cores'] * 7000:
+            memory = runvalues['cores'] * 7000
         else:
-            memory = max(runvalues['cores'] * 5000,
+            memory = max(runvalues['cores'] * 2.5 - 1,
                          runvalues['memory'] + 2000)
     else:
         memory = runvalues['cores'] * 5000
@@ -191,23 +189,23 @@ def create_run_file(input_file, output, runvalues):
     shlexnames = create_shlexnames(input_file, runvalues)
 
     out = ['#!/bin/bash\n',
-           '#SBATCH -J ' + shlexnames['inputname'] + '\n',
-           '#SBATCH --mail-type=ALL\n',
-           '#SBATCH --mail-user=user@server.org\n',
-           '#SBATCH --nodes=1\n',
-           '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
-           '#SBATCH --mem=' + str(memory) + '\n',
-           '#SBATCH --time=' + runvalues['walltime'] + '\n',
-           '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
+           '# @ job_name         = ' + shlexnames['inputname'] + '\n',
+           '# @ output           = ' + shlexnames['basename'] + '.llout\n',
+           '# @ error            = ' + shlexnames['basename'] + '.llerr\n',
+           '# @ notification     = always\n',
+           '# @ notify_user      = user@server.org\n',
+           '# @ job_type         = serial\n',
+           '# @ parallel_threads = ' + str(runvalues['cores']) + '\n',
+           '# @ wall_clock_limit = ' + runvalues['walltime'] + '\n',
+           '# @ queue\n',
            '\n']
     out.extend(['# Load Gaussian Module\n',
                 'module purge\n',
-                'module load gaussian\n',
+                'module load gaussian/g09_D01\n',
                 '\n',
                 '# Setup Gaussian specific variables\n',
                 'export g09root\n',
                 'source $g09root/g09/bsd/g09.profile\n',
-                'export OMP_NUM_THREADS=$SLURM_NPROCS\n',
                 '\n'])
     out.extend(['# Setup Scratch\n',
                 'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOBID\n',
@@ -326,6 +324,7 @@ To copy in bashrc:
   # Source the g09 setup file
   source $g09root/g09/bsd/g09.profile
 """
+
 
 if __name__ == '__main__':
     main()
