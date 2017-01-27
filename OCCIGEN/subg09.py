@@ -192,6 +192,7 @@ def create_run_file(input_file, output, runvalues):
 
     out = ['#!/bin/bash\n',
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
+           '#SBATCH --constraint=HSW24'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
            '#SBATCH --nodes=1\n',
@@ -326,6 +327,7 @@ To copy in bashrc:
   # Source the g09 setup file
   source $g09root/g09/bsd/g09.profile
 """
+
 
 if __name__ == '__main__':
     main()
