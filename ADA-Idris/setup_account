@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ##################################################
-# Setup account for easier computing on OCCIGEN cluster
+# Setup account for easier computing on Ada cluster
 #
 
 # Make sure end of lines are UNIX style
