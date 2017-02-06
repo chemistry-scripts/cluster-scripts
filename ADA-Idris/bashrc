@@ -10,7 +10,6 @@ export PATH=$PATH:$HOME/.local/bin
 
 # Gaussian
 module load gaussian/g09_D01
-source ${g09root}/g09/bsd/g09.profile
 
 # ADF2016
 module load adf/2016.101

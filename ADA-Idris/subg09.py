@@ -205,10 +205,9 @@ def create_run_file(input_file, output, runvalues):
                 '\n',
                 '# Setup Gaussian specific variables\n',
                 'export g09root\n',
-                'source $g09root/g09/bsd/g09.profile\n',
                 '\n'])
     out.extend(['# Setup Scratch\n',
-                'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOBID\n',
+                'export GAUSS_SCRDIR=$TMPDIR\n',
                 'mkdir -p $GAUSS_SCRDIR\n',
                 '\n',
                 '# Copy input file\n',
@@ -260,7 +259,7 @@ def create_run_file(input_file, output, runvalues):
                 '' + shlexnames['basename'] + '.log\n',
                 '\n'])
     out.extend(['# Move files back to original directory\n',
-                'cp ' + shlexnames['basename'] + '.log $SLURM_SUBMIT_DIR\n',
+                'cp ' + shlexnames['basename'] + '.log $LOADL_STEP_INITDIR\n',
                 '\n'])
     out.extend(['# If chk file exists, create fchk and copy everything\n',
                 'for f in $GAUSS_SCRDIR/*.chk; do\n',
@@ -268,16 +267,16 @@ def create_run_file(input_file, output, runvalues):
                 'done\n',
                 '\n',
                 'for f in $GAUSS_SCRDIR/*chk; do\n',
-                '    [ -f "$f" ] && cp $f $SLURM_SUBMIT_DIR\n',
+                '    [ -f "$f" ] && cp $f $LOADL_STEP_INITDIR\n',
                 'done\n',
                 '\n',
                 '\n'])
     out.extend(['# If Gaussian crashed or was stopped somehow, copy the rwf\n',
                 'for f in $GAUSS_SCRDIR/*rwf; do\n',
-                '    mkdir -p $SCRATCHDIR/gaussian/rwf\n'
+                '    mkdir -p $HOME/rwf\n'
                 # Copy rwf as JobName_123456.rwf
-                '    [ -f "$f" ] && cp $f $SCRATCHDIR/gaussian/rwf/' +
-                shlexnames['basename'] + '_$SLURM_JOBID.rwf\n',
+                '    [ -f "$f" ] && cp $f $HOME/rwf/' +
+                shlexnames['basename'] + '_$LOADL_STEP_ID.rwf\n',
                 'done\n',
                 '\n',
                 '# Empty Scratch directory\n',
