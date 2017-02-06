@@ -239,10 +239,10 @@ def create_run_file(input_file, output, runvalues):
     out.extend(['cd $GAUSS_SCRDIR\n',
                 '\n',
                 '# Print job info in output file\n',
-                'echo "job_id : $SLURM_JOBID"\n',
-                'echo "job_name : $SLURM_JOB_NAME"\n',
-                'echo "node_number : $SLURM_NNODES nodes"\n',
-                'echo "core number : $SLURM_NPROCS cores"\n',
+                'echo "job_id : $LOADL_STEP_ID"\n',
+                'echo "job_name : $LOADL_JOB_NAME"\n',
+                'echo "node_number : $ nodes"\n',
+                'echo "core number : $LOADL_TOTAL_TASKS cores"\n',
                 '\n'])
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
@@ -256,7 +256,7 @@ def create_run_file(input_file, output, runvalues):
         out.extend('echo %Mem=' + str(gaussian_memory) + 'MB ; ')
     out.extend(['cat ' + shlex.quote(input_file) + ' ) | ',
                 'timeout ' + str(runtime) + ' g09 > ',
-                '' + shlexnames['basename'] + '.log\n',
+                '$LOADL_STEP_INITDIR/' + shlexnames['basename'] + '.log\n',
                 '\n'])
     out.extend(['# Move files back to original directory\n',
                 'cp ' + shlexnames['basename'] + '.log $LOADL_STEP_INITDIR\n',
