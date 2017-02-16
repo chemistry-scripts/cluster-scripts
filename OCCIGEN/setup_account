@@ -4,6 +4,9 @@
 # Setup account for easier computing on OCCIGEN cluster
 #
 
+# Safety conversion
+dos2unix *
+
 # Create directories
 mkdir -p ~/.local/bin
 mkdir -p $SCRATCHDIR/adf
