@@ -13,8 +13,8 @@ mkdir -p $SCRATCHDIR/adf
 mkdir -p $SCRATCHDIR/gaussian/rwf
 
 # Create shortcuts for the scratch
-ln -s $SCRATCHDIR/adf ~/scratchADF
-ln -s $SCRATCHDIR/gaussian ~/scratchGaussian
+ln -sTf $SCRATCHDIR/adf ~/scratchADF
+ln -sTf $SCRATCHDIR/gaussian ~/scratchGaussian
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
