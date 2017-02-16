@@ -137,8 +137,8 @@ def get_defaultvalues(runvalues):
         existing already.
     """
     if runvalues['memory'] is None:
-        if runvalues['cores'] == 24:  # Single node, allow 64GB nodes
-            runvalues['memory'] = 58000
+        if runvalues['cores'] == 1:  # Single node, allow 64GB nodes
+            runvalues['memory'] = 1000
         else:  # Shared nodes
             runvalues['memory'] = 5000 * runvalues['cores']
     return runvalues
@@ -310,8 +310,8 @@ def help_epilog():
     """
     return """
 Defaults values:
-  Default memory:          64 GB
-  Default cores:           24
+  Default memory:          1 GB
+  Default cores:           1
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
@@ -323,7 +323,7 @@ core.
 To copy in bashrc:
   ##### Gaussian 2009
   # Load the gaussian module which will set the variable g09root.
-  module load gaussian
+  module load gaussian/g09
   # Source the g09 setup file
   source $g09root/g09/bsd/g09.profile
 """
