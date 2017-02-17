@@ -192,7 +192,7 @@ def create_run_file(input_file, output, runvalues):
 
     out = ['#!/bin/bash\n',
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
-           '#SBATCH --constraint=HSW24'
+           '#SBATCH --constraint=HSW24\n'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
            '#SBATCH --nodes=1\n',
