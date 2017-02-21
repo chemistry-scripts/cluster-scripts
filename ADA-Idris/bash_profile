@@ -42,7 +42,7 @@ alias df='df -kTh'
 
 # The 'ls' family (this assumes you use the GNU ls)
 alias la='ls -Al'           # show hidden files
-alias ls='ls -hF --color'	# add colors for filetype recognition
+alias ls='ls -hF --color'   # add colors for filetype recognition
 alias ll='ls -l'            # list files
 alias lx='ls -lXB'          # sort by extension
 alias lk='ls -lSr'          # sort by size
@@ -109,4 +109,5 @@ alias complet="username vectors warning lowFreq"
 alias queue='llq -u $USER'
 
 alias watchLogs='watch tail -n20 ~/*/*g'
+
 alias watchQueue='watch "llq -u \$USER"'
