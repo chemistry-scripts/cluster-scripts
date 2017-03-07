@@ -8,8 +8,9 @@ fi
 # Setup path
 export PATH=$PATH:$HOME/.local/bin
 
-# Intel compilers
+# Intel compilers + OpenMPI Library
 module load intel/17.0
+module load openmpi/intel/2.0.1
 
 # Gaussian
 module load gaussian/g09
