@@ -131,6 +131,7 @@ def create_run_file(input_file, output, runvalues):
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
+           '#SBATCH --constraint=HSW24\n',
            '#SBATCH --nodes=1\n',
            '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
            '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
@@ -139,7 +140,7 @@ def create_run_file(input_file, output, runvalues):
            '\n']
     out.extend(['# Load ADF Module\n',
                 'module purge\n',
-                'module load adf/2016.101-intel_cuda\n',
+                'module load adf/2016.102-openmpi',
                 '\n'])
     out.extend(['# Setup Scratch\n',
                 'export SCM_TMPDIR=$SCRATCHDIR/adf/$SLURM_JOBID\n',
@@ -228,6 +229,7 @@ To copy in bashrc:
   # Source the g09 setup file
   source $g09root/g09/bsd/g09.profile
 """
+
 
 if __name__ == '__main__':
     main()
