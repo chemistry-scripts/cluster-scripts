@@ -209,6 +209,10 @@ def create_run_file(input_file, output, runvalues):
                 'export g09root\n',
                 'source $g09root/g09/bsd/g09.profile\n',
                 'export OMP_NUM_THREADS=$SLURM_NPROCS\n',
+                '\n',
+                '# Setup NBO6\n',
+                'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
+                'export PATH=$PATH:$NBOBIN\n',
                 '\n'])
     out.extend(['# Setup Scratch\n',
                 'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOBID\n',
