@@ -221,7 +221,7 @@ def create_run_file(input_file, output, runvalues):
                 '# Copy input file\n',
                 'cp -f ' + shlexnames['inputname'] + ' $GAUSS_SCRDIR\n\n'])
     # If chk file is defined in input and exists, copy it in scratch
-    if runvalues['chk'] is not None:
+    if runvalues['chk'] != set():
         out.extend('# Copy chk file in scratch if it exists\n')
         for chk in shlexnames['chk']:
             out.extend(['if [ -f ' + chk + ' ] \n',
@@ -229,7 +229,7 @@ def create_run_file(input_file, output, runvalues):
                         '  cp ' + chk + ' $GAUSS_SCRDIR\n',
                         'fi\n\n'])
     # If oldchk file is defined in input and exists, copy it in scratch
-    if runvalues['oldchk'] is not None:
+    if runvalues['oldchk'] != set():
         out.extend('# Copy oldchk file in scratch if it exists\n')
         for oldchk in shlexnames['oldchk']:
             out.extend(['if [ -f ' + oldchk + ' ] \n',
@@ -237,7 +237,7 @@ def create_run_file(input_file, output, runvalues):
                         '  cp ' + oldchk + ' $GAUSS_SCRDIR\n',
                         'fi\n\n'])
     # If rwf file is defined in input and exists, copy it in scratch
-    if runvalues['rwf'] is not None:
+    if runvalues['rwf'] != set():
         out.extend('# Copy rwf file in scratch if it exists\n')
         for rwf in shlexnames['rwf']:
             out.extend(['if [ -f ' + rwf + ' ] \n',
