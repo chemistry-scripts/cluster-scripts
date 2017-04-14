@@ -162,6 +162,22 @@ def create_shlexnames(input_file, runvalues):
     return shlexnames
 
 
+def compute_memory(runvalues):
+    """
+        Return ideal memory value for OCCIGEN:
+        5GB per core, or memory from input + 2GB for overhead.
+    """
+    if runvalues['memory'] is not None:
+        if runvalues['memory'] == runvalues['cores'] * 5000:
+            memory = runvalues['cores'] * 5000
+        else:
+            memory = max(runvalues['cores'] * 5000,
+                         runvalues['memory'] + 2000)
+    else:
+        memory = runvalues['cores'] * 5000
+    return memory
+
+
 def create_run_file(input_file, output, runvalues):
     """
         Create .sh file that contains the script to actually run on the server.
@@ -178,14 +194,7 @@ def create_run_file(input_file, output, runvalues):
 
     # Compute memory required:
     # max of 5GB per core (default), or memory from input + 2GB for overhead.
-    if runvalues['memory'] is not None:
-        if runvalues['memory'] == runvalues['cores'] * 5000:
-            memory = runvalues['cores'] * 5000
-        else:
-            memory = max(runvalues['cores'] * 5000,
-                         runvalues['memory'] + 2000)
-    else:
-        memory = runvalues['cores'] * 5000
+    memory = compute_memory(runvalues)
 
     # Setup names to use in file
     shlexnames = create_shlexnames(input_file, runvalues)
