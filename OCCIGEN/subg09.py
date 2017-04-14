@@ -50,6 +50,9 @@ def main():
     runvalues = get_values_from_input_file(input_file_name, runvalues)
     # Backfill parameters not set in the runvalues
     runvalues = get_defaultvalues(runvalues)
+    # If NBO required, retrieve NBO values
+    if runvalues['nbo']:
+        get_nbo_values(input_file_name, runvalues)
     # Create run file for gaussian
     create_run_file(input_file_name, output, runvalues)
     # Submit the script
@@ -128,6 +131,26 @@ def get_values_from_input_file(input_file, runvalues):
                     runvalues["memory"] = int(mem_value)
                 elif mem_unit == "MW":
                     runvalues["memory"] = int(mem_value) / 8
+            if "nbo" in line.lower():
+                runvalues['nbo'] = True
+    return runvalues
+
+
+def get_nbo_values(input_file, runvalues):
+    """
+        Get core/memory values from input file, reading the Mem and
+        NProcShared parameters
+    """
+    with open(input_file, 'r') as file:
+        # Go through lines and test if they are containing nproc, mem related
+        # directives.
+        for line in file.readlines():
+            if "nbo" in line.lower():
+                # Should be already set but you never know...
+                runvalues['nbo'] = True
+            if "TITLE=" in line:
+                # TITLE=FILENAME
+                runvalues['nbo_basefilename'] = line.split('=')[1]
     return runvalues
 
 
@@ -218,11 +241,12 @@ def create_run_file(input_file, output, runvalues):
                 'export g09root\n',
                 'source $g09root/g09/bsd/g09.profile\n',
                 'export OMP_NUM_THREADS=$SLURM_NPROCS\n',
-                '\n',
-                '# Setup NBO6\n',
-                'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
-                'export PATH=$PATH:$NBOBIN\n',
                 '\n'])
+    if runvalues['nbo']:
+        out.extend(['# Setup NBO6\n',
+                    'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
+                    'export PATH=$PATH:$NBOBIN\n',
+                    '\n'])
     out.extend(['# Setup Scratch\n',
                 'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOBID\n',
                 'mkdir -p $GAUSS_SCRDIR\n',
@@ -286,8 +310,12 @@ def create_run_file(input_file, output, runvalues):
                 'for f in $GAUSS_SCRDIR/*chk; do\n',
                 '    [ -f "$f" ] && cp $f $SLURM_SUBMIT_DIR\n',
                 'done\n',
-                '\n',
                 '\n'])
+    if runvalues['nbo']:
+        out.extend(['# Retrieve NBO Files\n',
+                    'cp ' + runvalues['nbo_basefilename'] + '.*'
+                    ' $SLURM_SUBMIT_DIR\n'
+                    '\n'])
     out.extend(['# If Gaussian crashed or was stopped somehow, copy the rwf\n',
                 'for f in $GAUSS_SCRDIR/*rwf; do\n',
                 '    mkdir -p $SCRATCHDIR/gaussian/rwf\n'
