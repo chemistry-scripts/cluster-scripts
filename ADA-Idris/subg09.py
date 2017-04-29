@@ -64,7 +64,7 @@ def get_options():
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument('-n', '--nproc', default=24, type=int,
                         help="Number of cores used for the computation")
-    parser.add_argument('-t', '--walltime', default="24:00:00", type=str,
+    parser.add_argument('-t', '--walltime', default="100:00:00", type=str,
                         help="Maximum time allowed for the computation")
     parser.add_argument('-m', '--memory', type=int,
                         help="Amount of memory allowed for the computation")
