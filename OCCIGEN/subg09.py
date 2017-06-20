@@ -21,8 +21,8 @@ import re
 def main():
     """
         Main function.
-        Checks existence of input, and non-existence of batch file (e.g.
-        computation has not already been submitted).
+        Checks existence of input, and non-existence of batch file
+        (e.g. computation has not already been submitted).
         Run computation
     """
     # Get parameters from command line
