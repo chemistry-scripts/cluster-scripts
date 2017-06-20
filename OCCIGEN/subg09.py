@@ -48,8 +48,6 @@ def main():
     os.system('dos2unix {0}'.format(shlex.quote(input_file_name)))
     # Get computation parameters from input file
     runvalues = get_values_from_input_file(input_file_name, runvalues)
-    # Backfill parameters not set in the runvalues
-    runvalues = get_defaultvalues(runvalues)
     # If NBO required, retrieve NBO values
     if runvalues['nbo']:
         get_nbo_values(input_file_name, runvalues)
@@ -154,19 +152,6 @@ def get_nbo_values(input_file, runvalues):
     return runvalues
 
 
-def get_defaultvalues(runvalues):
-    """
-        Fill the runvalues table with the default values in case they are not
-        existing already.
-    """
-    if runvalues['memory'] is None:
-        if runvalues['cores'] == 1:  # Single node, allow 64GB nodes
-            runvalues['memory'] = 1000
-        else:  # Shared nodes
-            runvalues['memory'] = 5000 * runvalues['cores']
-    return runvalues
-
-
 def create_shlexnames(input_file, runvalues):
     """
         Return dictionary containing shell escaped names for all possible files
@@ -188,17 +173,23 @@ def create_shlexnames(input_file, runvalues):
 def compute_memory(runvalues):
     """
         Return ideal memory value for OCCIGEN:
-        5GB per core, or memory from input + 2GB for overhead.
+        4GB per core, or memory from input + 4000 MB for overhead.
+        Computed to use as close as possible the memory available.
     """
     if runvalues['memory'] is not None:
-        if runvalues['memory'] == runvalues['cores'] * 5000:
-            memory = runvalues['cores'] * 5000
+        # Memory already defined in input file
+        gaussian_memory = runvalues['memory']
+        # SLURM memory requirement is gaussian_memory + overhead, as long as
+        # it fits within the general node requirements
+        if gaussian_memory + 4000 < runvalues['cores'] * 4800:
+            memory = gaussian_memory + 4000
         else:
-            memory = max(runvalues['cores'] * 5000,
-                         runvalues['memory'] + 2000)
+            memory = runvalues['cores'] * 4800
     else:
-        memory = runvalues['cores'] * 5000
-    return memory
+        gaussian_memory = runvalues['cores'] * 4000
+        memory = runvalues['cores'] * 4800
+
+    return (memory, gaussian_memory)
 
 
 def create_run_file(input_file, output, runvalues):
@@ -215,9 +206,8 @@ def create_run_file(input_file, output, runvalues):
         Instructions adapted from www.cines.fr
     """
 
-    # Compute memory required:
-    # max of 5GB per core (default), or memory from input + 2GB for overhead.
-    memory = compute_memory(runvalues)
+    # Compute memory requirements:
+    memory, gaussian_memory = compute_memory(runvalues)
 
     # Setup names to use in file
     shlexnames = create_shlexnames(input_file, runvalues)
@@ -292,8 +282,6 @@ def create_run_file(input_file, output, runvalues):
     if runvalues['nproc_in_input'] is None:  # nproc line not in input
         out.extend('echo %NProcShared=' + str(runvalues['cores']) + '; ')
     if runvalues['memory_in_input'] is None:  # memory line not in input
-        # Use memory minus 1GB per core to account for Gaussian overhead
-        gaussian_memory = memory - min(6000, 1000 * runvalues['cores'])
         out.extend('echo %Mem=' + str(gaussian_memory) + 'MB ; ')
     out.extend(['cat ' + shlex.quote(input_file) + ' ) | ',
                 'timeout ' + str(runtime) + ' g09 > ',
