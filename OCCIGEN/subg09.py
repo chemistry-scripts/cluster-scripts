@@ -95,6 +95,9 @@ def get_options():
     runvalues['chk'] = set()
     runvalues['oldchk'] = set()
     runvalues['rwf'] = set()
+    runvalues['nbo'] = False
+    runvalues['nbo_basefilename'] = ''
+
     return runvalues
 
 
