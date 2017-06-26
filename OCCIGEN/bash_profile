@@ -11,6 +11,22 @@ if [ -f ~/.bashrc ]; then
 fi
 
 #===============================================================
+# ==== Load Modules
+# Intel compilers + OpenMPI Library
+module load intel/17.0
+module load openmpi/intel/2.0.1
+
+# Gaussian
+module load gaussian/g09
+source ${g09root}/g09/bsd/g09.profile
+
+# ADF
+module load adf/2016.102-openmpi
+
+# Python
+module load python/3.5.3
+
+#===============================================================
 # Define some colors first:
 red='\e[0;31m'
 RED='\e[1;31m'
@@ -78,7 +94,7 @@ alias count="echo '************************************';
 
 alias encours="echo '************************************';
                echo 'Running Computations: ' ;
-               squeue -o '%.8i %.9P %.20j %.8T %.9M %.5D %.16R %.8c %.4C' -u $USER ;
+               squeue -o '%.8i %.9P %.20j %.8T %.9M %.5D %.16R %.16S %.8c %.4C' -u $USER ;
                echo '************************************';
                echo 'Total Number of Computations:' ;
                squeue -u $USER | grep $USER -c
@@ -107,7 +123,7 @@ alias username="encours nbtour count almostFinished finished"
 
 alias complet="username vectors warning lowFreq"
 
-alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.8c %.4C" -u $USER'
+alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C" -u $USER'
 
 alias watchLogs='watch tail -n20 ~/scratchGaussian/*/*g'
-alias watchQueue='watch "squeue -o '"'"'%.8i %.9P %10u %.20j %.8T %.9M %.12l %.5D %.16R %.8c %.4C'"'"' -u \$USER"'
+alias watchQueue='watch "squeue -o '"'"'%.8i %.9P %10u %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
