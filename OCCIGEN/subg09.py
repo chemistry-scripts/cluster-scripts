@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Submit script for Gaussian09 for Computing Clusters
+Submit script for Gaussian09 for Computing Clusters.
+
 Original script for LISA by Jos Mulder
 email j.r.mulder -at- vu.nl
 Adapted for Cines OCCIGEN cluster
@@ -20,10 +21,11 @@ import re
 
 def main():
     """
-        Main function.
-        Checks existence of input, and non-existence of batch file
-        (e.g. computation has not already been submitted).
-        Run computation
+    Set up the computation and submit it to the job scheduler.
+
+    Checks existence of input, and non-existence of batch file
+    (e.g. computation has not already been submitted).
+    Run computation
     """
     # Get parameters from command line
     runvalues = get_options()
@@ -60,9 +62,7 @@ def main():
 
 
 def get_options():
-    """
-        Check command line options and accordingly set computation parameters
-    """
+    """Check command line options and accordingly set computation parameters."""
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
@@ -102,10 +102,7 @@ def get_options():
 
 
 def get_values_from_input_file(input_file, runvalues):
-    """
-        Get core/memory values from input file, reading the Mem and
-        NProcShared parameters
-    """
+    """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
     with open(input_file, 'r') as file:
         # Go through lines and test if they are containing nproc, mem related
         # directives.
@@ -138,10 +135,7 @@ def get_values_from_input_file(input_file, runvalues):
 
 
 def get_nbo_values(input_file, runvalues):
-    """
-        Get core/memory values from input file, reading the Mem and
-        NProcShared parameters
-    """
+    """Retrieve specific NBO parameters from the input."""
     with open(input_file, 'r') as file:
         # Go through lines and test if they are containing nproc, mem related
         # directives.
@@ -156,9 +150,7 @@ def get_nbo_values(input_file, runvalues):
 
 
 def create_shlexnames(input_file, runvalues):
-    """
-        Return dictionary containing shell escaped names for all possible files
-    """
+    """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
     input_basename = os.path.splitext(input_file)[0]
     shlexnames['inputname'] = shlex.quote(input_file)
@@ -175,9 +167,10 @@ def create_shlexnames(input_file, runvalues):
 
 def compute_memory(runvalues):
     """
-        Return ideal memory value for OCCIGEN:
-        4GB per core, or memory from input + 4000 MB for overhead.
-        Computed to use as close as possible the memory available.
+    Return ideal memory value for OCCIGEN.
+
+    4GB per core, or memory from input + 4000 MB for overhead.
+    Computed to use as close as possible the memory available.
     """
     if runvalues['memory'] is not None:
         # Memory already defined in input file
@@ -197,18 +190,18 @@ def compute_memory(runvalues):
 
 def create_run_file(input_file, output, runvalues):
     """
-        Create .sh file that contains the script to actually run on the server.
-        Structure:
-        -- SBATCH instructions for the queue manager
-        -- setup of Gaussian09 on the nodes
-        -- creation of scratch, copy necessary files
-        -- Run Gaussian09
-        -- Copy appropriate files back to $HOME
-        -- Cleanup scratch
+    Create .sh file that contains the script to actually run on the server.
 
-        Instructions adapted from www.cines.fr
+    Structure:
+        - SBATCH instructions for the queue manager
+        - setup of Gaussian09 on the nodes
+        - creation of scratch, copy necessary files
+        - Run Gaussian09
+        - Copy appropriate files back to $HOME
+        - Cleanup scratch
+
+    Instructions adapted from www.cines.fr
     """
-
     # Compute memory requirements:
     memory, gaussian_memory = compute_memory(runvalues)
 
@@ -327,9 +320,7 @@ def create_run_file(input_file, output, runvalues):
 
 
 def help_description():
-    """
-        Returns description of program for help message
-    """
+    """Return description of program for help message."""
     return """
 Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
 The jobscript name should end with .gjf or .com.
@@ -337,9 +328,7 @@ The jobscript name should end with .gjf or .com.
 
 
 def help_epilog():
-    """
-        Returns additionnal help message
-    """
+    """Return additionnal help message."""
     return """
 Defaults values:
   Default memory:          1 GB
