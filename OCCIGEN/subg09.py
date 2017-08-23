@@ -131,6 +131,14 @@ def get_values_from_input_file(input_file, runvalues):
                     runvalues["memory"] = int(mem_value) / 8
             if "nbo" in line.lower():
                 runvalues['nbo'] = True
+
+    # Setup cluster_section according to number of cores
+    if runvalues["cores"] <= 24:
+        runvalues['cluster_section'] = "HSW24"
+    elif runvalues["cores"] <= 28:
+        runvalues['cluster_section'] = "BDW28"
+    else:
+        raise ValueError("Number of cores cannot exceed 28")
     return runvalues
 
 
@@ -210,7 +218,7 @@ def create_run_file(input_file, output, runvalues):
 
     out = ['#!/bin/bash\n',
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
-           '#SBATCH --constraint=HSW24\n'
+           '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
            '#SBATCH --nodes=1\n',
