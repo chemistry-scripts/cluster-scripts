@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/72845791.svg)](https://zenodo.org/badge/latestdoi/72845791)
+
 # Cluster-scripts
 A collection of various scripts for submitting computational chemistry jobs to
 supercomputing clusters provided by various institutions.
