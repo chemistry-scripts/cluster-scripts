@@ -49,7 +49,7 @@ def main():
     os.system('dos2unix {0}'.format(shlex.quote(input_file_name)))
     # Backfill parameters not set in the runvalues
     runvalues = get_defaultvalues(runvalues)
-    # Create run file for gaussian
+    # Create run file for orca
     create_run_file(input_file_name, output, runvalues)
     # Submit the script
     os.system('sbatch {0}'.format(shlex.quote(output)))
@@ -58,11 +58,13 @@ def main():
 
 
 def get_options():
-    """Check command line options and accordingly set computation parameters."""
+    """Get command line options and accordingly set computation parameters."""
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('-n', '--nproc', default=24, type=int,
+    parser.add_argument('-n', '--nodes', default=1, type=int,
+                        help="Number of nodes used for the computation")
+    parser.add_argument('-p', '--proc', default=24, type=int,
                         help="Number of cores used for the computation")
     parser.add_argument('-t', '--walltime', default="24:00:00", type=str,
                         help="Maximum time allowed for the computation")
@@ -77,9 +79,10 @@ def get_options():
         print(str(error))  # Print something like "option -a not recognized"
         sys.exit(2)
 
-    runvalues = dict.fromkeys(['inputfile', 'cores', 'walltime', 'memory'])
+    runvalues = dict.fromkeys(['inputfile', 'nodes', 'cores', 'walltime', 'memory'])
     # Get values from parser
     runvalues['inputfile'] = os.path.basename(args.inputfile[0])
+    runvalues['nodes'] = args.nodes
     runvalues['cores'] = args.nproc
     runvalues['walltime'] = args.walltime
 
@@ -131,13 +134,13 @@ def create_run_file(input_file, output, runvalues):
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
            '#SBATCH --constraint=HSW24\n',
-           '#SBATCH --nodes=1\n',
+           '#SBATCH --nodes=' + str(runvalues['nodes']) + '\n',
            '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
            '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
            '#SBATCH --time=' + runvalues['walltime'] + '\n',
            '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
            '\n']
-    out.extend(['# Load ADF Module\n',
+    out.extend(['# Load ORCA modules\n',
                 'module purge\n',
                 'module load intel/17.2\n',
                 'module load openmpi/intel/2.0.2\n',
@@ -168,26 +171,7 @@ def create_run_file(input_file, output, runvalues):
     out.extend(['# Move files back to original directory\n',
                 'cp ' + shlexnames['basename'] + '.out $SLURM_SUBMIT_DIR\n',
                 '\n'])
-    out.extend(['# If ADF crashed or was stopped somehow, copy the t13\n',
-                'if [ -f TAPE13 ];\n',
-                '    then mv TAPE13 $SLURM_SUBMIT_DIR/',
-                shlexnames['basename'] + '.t13 \n',
-                'fi\n',
-                '# If ADF crashed or was stopped somehow, copy the t10\n',
-                'if [ -f TAPE10 ];\n',
-                '    then mv TAPE10 $SLURM_SUBMIT_DIR/',
-                shlexnames['basename'] + '.t10 \n',
-                'fi\n',
-                '# Copy and rename the TAPE21 file\n',
-                'if [ -f TAPE21 ];\n',
-                '    then mv TAPE21 $SLURM_SUBMIT_DIR/',
-                shlexnames['basename'] + '.t21 \n',
-                'fi\n',
-                '# Copy and rename the logfile\n',
-                'mv logfile $SLURM_SUBMIT_DIR/',
-                shlexnames['basename'] + '.logfile\n',
-                '\n',
-                '# Empty Scratch directory\n',
+    out.extend(['# Empty Scratch directory\n',
                 'rm -rf $SCM_TMPDIR\n',
                 '\n',
                 'echo "Computation finished."\n',
@@ -219,13 +203,6 @@ but are overridden if command line arguments are provided.
 
 When using shared nodes (less than 24 cores), the default memory is 5GB per
 core.
-
-To copy in bashrc:
-  ##### Gaussian 2009
-  # Load the gaussian module which will set the variable g09root.
-  module load gaussian
-  # Source the g09 setup file
-  source $g09root/g09/bsd/g09.profile
 """
 
 
