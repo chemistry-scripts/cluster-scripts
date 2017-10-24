@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Submit script for Gaussian09 for Computing Clusters
+Submit script for Gaussian09 for Computing Clusters.
+
 Original script for LISA by Jos Mulder
 email j.r.mulder -at- vu.nl
 Adapted for Cines OCCIGEN cluster
@@ -19,10 +20,11 @@ import shlex
 
 def main():
     """
-        Main function.
-        Checks existence of input, and non-existence of batch file (e.g.
-        computation has not already been submitted).
-        Run computation
+    Do all the job.
+
+    Checks existence of input, and non-existence of batch file (e.g.
+    computation has not already been submitted).
+    Run computation
     """
     # Get parameters from command line
     runvalues = get_options()
@@ -56,9 +58,7 @@ def main():
 
 
 def get_options():
-    """
-        Check command line options and accordingly set computation parameters
-    """
+    """Check command line options and accordingly set computation parameters."""
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
@@ -87,10 +87,7 @@ def get_options():
 
 
 def get_defaultvalues(runvalues):
-    """
-        Fill the runvalues table with the default values in case they are not
-        existing already.
-    """
+    """Fill the runvalues table with the default values in case they are not existing already."""
     if runvalues['memory'] is None:
         if runvalues['cores'] == 24:  # Single node, allow 64GB nodes
             runvalues['memory'] = 58000
@@ -100,9 +97,7 @@ def get_defaultvalues(runvalues):
 
 
 def create_shlexnames(input_file):
-    """
-        Return dictionary containing shell escaped names for all possible files
-    """
+    """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
     input_basename = os.path.splitext(input_file)[0]
     shlexnames['inputname'] = shlex.quote(input_file)
@@ -112,18 +107,18 @@ def create_shlexnames(input_file):
 
 def create_run_file(input_file, output, runvalues):
     """
-        Create .sh file that contains the script to actually run on the server.
-        Structure:
-        -- SBATCH instructions for the queue manager
-        -- setup of ADF on the nodes
-        -- creation of scratch, copy necessary files
-        -- Run ADF
-        -- Copy and rename appropriate files back to $HOME
-        -- Cleanup scratch
+    Create .sh file that contains the script to actually run on the server.
 
-        Instructions adapted from www.cines.fr
+    Structure:
+    -- SBATCH instructions for the queue manager
+    -- setup of ORCA on the nodes
+    -- creation of scratch, copy necessary files
+    -- Run ORCA
+    -- Copy and rename appropriate files back to $HOME
+    -- Cleanup scratch
+
+    Instructions adapted from www.cines.fr
     """
-
     # Setup names to use in file
     shlexnames = create_shlexnames(input_file)
 
@@ -204,9 +199,7 @@ def create_run_file(input_file, output, runvalues):
 
 
 def help_description():
-    """
-        Returns description of program for help message
-    """
+    """Return description of program for help message."""
     return """
 Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
 The jobscript name should end with .gjf or .com.
@@ -214,9 +207,7 @@ The jobscript name should end with .gjf or .com.
 
 
 def help_epilog():
-    """
-        Returns additionnal help message
-    """
+    """Return additionnal help message."""
     return """
 Defaults values:
   Default memory:          64 GB
