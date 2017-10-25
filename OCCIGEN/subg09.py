@@ -234,7 +234,7 @@ def create_run_file(input_file, output, runvalues):
                 '# Setup Gaussian specific variables\n',
                 'export g09root\n',
                 'source $g09root/g09/bsd/g09.profile\n',
-                'export OMP_NUM_THREADS=$SLURM_NPROCS\n',
+                'export OMP_NUM_THREADS=$SLURM_NTASKS\n',
                 '\n'])
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
@@ -242,7 +242,7 @@ def create_run_file(input_file, output, runvalues):
                     'export PATH=$PATH:$NBOBIN\n',
                     '\n'])
     out.extend(['# Setup Scratch\n',
-                'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOBID\n',
+                'export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOB_ID\n',
                 'mkdir -p $GAUSS_SCRDIR\n',
                 '\n',
                 '# Copy input file\n',
@@ -274,10 +274,11 @@ def create_run_file(input_file, output, runvalues):
     out.extend(['cd $GAUSS_SCRDIR\n',
                 '\n',
                 '# Print job info in output file\n',
-                'echo "job_id : $SLURM_JOBID"\n',
+                'echo "job_id : $SLURM_JOB_ID"\n',
                 'echo "job_name : $SLURM_JOB_NAME"\n',
-                'echo "node_number : $SLURM_NNODES nodes"\n',
-                'echo "core number : $SLURM_NPROCS cores"\n',
+                'echo "node_number : $SLURM_JOB_NUM_NODES nodes"\n',
+                'echo "core number : $SLURM_NTASKS cores"\n',
+                'echo "Node list : $SLURM_JOB_NODELIST"\n',
                 '\n'])
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
@@ -313,7 +314,7 @@ def create_run_file(input_file, output, runvalues):
                 '    mkdir -p $SCRATCHDIR/gaussian/rwf\n'
                 # Move rwf as JobName_123456.rwf to the rwf folder in scratch
                 '    [ -f "$f" ] && mv $f $SCRATCHDIR/gaussian/rwf/' +
-                shlexnames['basename'] + '_$SLURM_JOBID.rwf\n',
+                shlexnames['basename'] + '_$SLURM_JOB_ID.rwf\n',
                 'done\n',
                 '\n',
                 '# Empty Scratch directory\n',

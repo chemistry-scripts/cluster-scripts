@@ -156,10 +156,11 @@ def create_run_file(input_file, output, runvalues):
     out.extend(['cd $SCM_TMPDIR\n',
                 '\n',
                 '# Print job info in output file\n',
-                'echo "job_id : $SLURM_JOBID"\n',
+                'echo "job_id : $SLURM_JOB_ID"\n',
                 'echo "job_name : $SLURM_JOB_NAME"\n',
-                'echo "node_number : $SLURM_NNODES nodes"\n',
-                'echo "core number : $SLURM_NPROCS cores"\n',
+                'echo "node_number : $SLURM_JOB_NUM_NODES nodes"\n',
+                'echo "core number : $SLURM_NTASKS cores"\n',
+                'echo "Node list : $SLURM_JOB_NODELIST"\n',
                 '\n'])
     # runtime is walltime minus one minute (with at least one minute)
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
