@@ -11,10 +11,12 @@ dos2unix *
 mkdir -p ~/.local/bin
 mkdir -p $SCRATCHDIR/adf
 mkdir -p $SCRATCHDIR/gaussian/rwf
+mkdir -p $SCRATCHDIR/orca
 
 # Create shortcuts for the scratch
 ln -sTf $SCRATCHDIR/adf ~/scratchADF
 ln -sTf $SCRATCHDIR/gaussian ~/scratchGaussian
+ln -sTf $SCRATCHDIR/orca ~/scratchOrca
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
@@ -29,10 +31,12 @@ cp -f bashrc ~/.bashrc
 cp -f emacs ~/.emacs
 sed -e "s/user@server.org/${mail}/" < subadf.py > ~/.local/bin/subadf.py
 sed -e "s/user@server.org/${mail}/" < subg09.py > ~/.local/bin/subg09.py
+sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
 
 # Change permissions
 chmod +x ~/.local/bin/subadf.py
 chmod +x ~/.local/bin/subg09.py
+chmod +x ~/.local/bin/suborca.py
 
 echo "Your account was set up. You should log off and back on to make sure"
 echo "everything works."

@@ -26,6 +26,9 @@ module load adf/2016.102-openmpi
 # Python
 module load python/3.5.3
 
+# Orca
+export PATH=$PATH:$SHAREDHOMEDIR/orca-4_0_1
+
 #===============================================================
 # Define some colors first:
 red='\e[0;31m'
