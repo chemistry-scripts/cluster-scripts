@@ -16,6 +16,7 @@ import argparse
 import sys
 import os
 import shlex
+import re
 
 
 def main():
@@ -99,6 +100,47 @@ def get_defaultvalues(runvalues):
     return runvalues
 
 
+def get_values_from_input_file(input_file, runvalues):
+    """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
+    with open(input_file, 'r') as file:
+        # Go through lines and test if they are containing nproc, mem related
+        # directives.
+        for line in file.readlines():
+            if "%nproc" in line.lower():
+                runvalues['nproc_in_input'] = True
+                runvalues["cores"] = int(line.split("=")[1].rstrip('\n'))
+            if "%chk" in line.lower():
+                runvalues["chk"].add(line.split("=")[1].rstrip('\n'))
+            if "%oldchk" in line.lower():
+                runvalues["oldchk"].add(line.split("=")[1].rstrip('\n'))
+            if "%rwf" in line.lower():
+                runvalues["rwf"].add(line.split("=")[1].rstrip('\n'))
+            if "%mem" in line.lower():
+                runvalues['memory_in_input'] = True
+                mem_line = line.split("=")[1].rstrip('\n')
+                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)',
+                                               mem_line).groups()
+                if mem_unit == "GB":
+                    runvalues["memory"] = int(mem_value) * 1000
+                elif mem_unit == "GW":
+                    runvalues["memory"] = int(mem_value) / 8 * 1000
+                elif mem_unit == "MB":
+                    runvalues["memory"] = int(mem_value)
+                elif mem_unit == "MW":
+                    runvalues["memory"] = int(mem_value) / 8
+            if "nbo" in line.lower():
+                runvalues['nbo'] = True
+
+    # Setup cluster_section according to number of cores
+    if runvalues["cores"] <= 24:
+        runvalues['cluster_section'] = "HSW24"
+    elif runvalues["cores"] <= 28:
+        runvalues['cluster_section'] = "BDW28"
+    else:
+        raise ValueError("Number of cores cannot exceed 28")
+    return runvalues
+
+
 def create_shlexnames(input_file):
     """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
@@ -133,27 +175,30 @@ def create_run_file(input_file, output, runvalues):
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
-           '#SBATCH --constraint=HSW24\n',
+           '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --nodes=' + str(runvalues['nodes']) + '\n',
            '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
            '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
            '#SBATCH --time=' + runvalues['walltime'] + '\n',
            '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
            '\n']
-    out.extend(['# Load ORCA modules\n',
+    out.extend(['# Load modules necessary for ORCA\n',
                 'module purge\n',
-                'module load intel/17.2\n',
+                'module load intel/18.0\n',
                 'module load openmpi/intel/2.0.2\n',
-                'module load adf/2016.102-openmpi',
                 '\n'])
 
     out.extend(['# Setup Scratch\n',
-                'export SCM_TMPDIR=$SCRATCHDIR/adf/$SLURM_JOBID\n',
-                'mkdir -p $SCM_TMPDIR\n',
+                'export ORCA_TMPDIR=$SCRATCHDIR/orca/$SLURM_JOBID\n',
+                'mkdir -p $ORCA_TMPDIR\n',
+                '\n',
+                '# Setup Orca\n',
+                'export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_0_1\n',
+                'export PATH=$PATH:$ORCA_BIN_DIR\n',
                 '\n',
                 '# Copy files \n',
-                'cp -f ' + shlexnames['inputname'] + ' $SCM_TMPDIR\n\n'])
-    out.extend(['cd $SCM_TMPDIR\n',
+                'cp -f ' + shlexnames['inputname'] + ' $ORCA_TMPDIR\n\n'])
+    out.extend(['cd $ORCA_TMPDIR\n',
                 '\n',
                 '# Print job info in output file\n',
                 'echo "job_id : $SLURM_JOB_ID"\n',
@@ -165,15 +210,15 @@ def create_run_file(input_file, output, runvalues):
     # runtime is walltime minus one minute (with at least one minute)
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = max(3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60, 60)
-    out.extend(['# Start ADF\n',
-                'timeout ' + str(runtime) + ' sh < ' + shlex.quote(input_file),
+    out.extend(['# Start ORCA\n',
+                'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca < ' + shlex.quote(input_file),
                 ' > ' + shlexnames['basename'] + '.out\n',
                 '\n'])
     out.extend(['# Move files back to original directory\n',
                 'cp ' + shlexnames['basename'] + '.out $SLURM_SUBMIT_DIR\n',
                 '\n'])
-    out.extend(['# Empty Scratch directory\n',
-                'rm -rf $SCM_TMPDIR\n',
+    out.extend(['# Empty scratch directory\n',
+                'rm -rf $ORCA_TMPDIR\n',
                 '\n',
                 'echo "Computation finished."\n',
                 '\n'])
@@ -187,7 +232,7 @@ def help_description():
     """Return description of program for help message."""
     return """
 Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
-The jobscript name should end with .gjf or .com.
+The jobscript name should end with .inp .
 """
 
 
