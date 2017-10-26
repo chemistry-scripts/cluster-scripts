@@ -72,9 +72,10 @@ def main():
 
     # Get computation parameters from input file
     runvalues = get_values_from_input_file(input_file_name, runvalues)
-    # If NBO required, retrieve NBO values
-    if runvalues['nbo']:
-        get_nbo_values(input_file_name, runvalues)
+
+    # Fill with missing values and consolidate the whole thing
+    runvalues = fill_missing_values(runvalues)
+
     # Create run file for gaussian
     create_run_file(input_file_name, output, runvalues)
     # Submit the script
@@ -117,53 +118,12 @@ def get_options():
     return cmdline_args
 
 
-def get_values_from_input_file(input_file, runvalues):
-    """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
-    with open(input_file, 'r') as file:
-        # Go through lines and test if they are containing nproc, mem related
-        # directives.
-        for line in file.readlines():
-            if "%nproc" in line.lower():
-                runvalues['nproc_in_input'] = True
-                runvalues["cores"] = int(line.split("=")[1].rstrip('\n'))
-            if "%chk" in line.lower():
-                runvalues["chk"].add(line.split("=")[1].rstrip('\n'))
-            if "%oldchk" in line.lower():
-                runvalues["oldchk"].add(line.split("=")[1].rstrip('\n'))
-            if "%rwf" in line.lower():
-                runvalues["rwf"].add(line.split("=")[1].rstrip('\n'))
-            if "%mem" in line.lower():
-                runvalues['memory_in_input'] = True
-                mem_line = line.split("=")[1].rstrip('\n')
-                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)',
-                                               mem_line).groups()
-                if mem_unit == "GB":
-                    runvalues["memory"] = int(mem_value) * 1000
-                elif mem_unit == "GW":
-                    runvalues["memory"] = int(mem_value) / 8 * 1000
-                elif mem_unit == "MB":
-                    runvalues["memory"] = int(mem_value)
-                elif mem_unit == "MW":
-                    runvalues["memory"] = int(mem_value) / 8
-            if "nbo" in line.lower():
-                runvalues['nbo'] = True
-
-    # Setup cluster_section according to number of cores
-    if runvalues["cores"] <= 24:
-        runvalues['cluster_section'] = "HSW24"
-    elif runvalues["cores"] <= 28:
-        runvalues['cluster_section'] = "BDW28"
-    else:
-        raise ValueError("Number of cores cannot exceed 28")
-    return runvalues
-
-
 def default_run_values():
     """Fill default runvalues."""
     # Setup runvalues
     runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
                                'chk', 'oldchk', 'rwf', 'nproc_in_input', 'memory_in_input',
-                               'nbo', 'nbo_basefilename'])
+                               'nbo', 'nbo_basefilename', 'cluster_section'])
     runvalues['inputfile'] = ''
     runvalues['outputfile'] = ''
     runvalues['nodes'] = 1
@@ -177,21 +137,59 @@ def default_run_values():
     runvalues['memory_in_input'] = False
     runvalues['nbo'] = False
     runvalues['nbo_basefilename'] = ''
+    runvalues['cluster_section'] = 'HSW24'
     return runvalues
 
 
-def get_nbo_values(input_file, runvalues):
-    """Retrieve specific NBO parameters from the input."""
+def get_values_from_input_file(input_file, runvalues):
+    """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
     with open(input_file, 'r') as file:
-        # Go through lines and test if they are containing nproc, mem related
+        # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
         for line in file.readlines():
+            if "%nproc" in line.lower():
+                runvalues['nproc_in_input'] = True
+                runvalues['cores'] = int(line.split("=")[1].rstrip('\n'))
+            if "%chk" in line.lower():
+                runvalues['chk'].add(line.split("=")[1].rstrip('\n'))
+            if "%oldchk" in line.lower():
+                runvalues['oldchk'].add(line.split("=")[1].rstrip('\n'))
+            if "%rwf" in line.lower():
+                runvalues['rwf'].add(line.split("=")[1].rstrip('\n'))
+            if "%mem" in line.lower():
+                runvalues['memory_in_input'] = True
+                mem_line = line.split("=")[1].rstrip('\n')
+                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
+                if mem_unit == "GB":
+                    runvalues['memory'] = int(mem_value) * 1000
+                elif mem_unit == "GW":
+                    runvalues['memory'] = int(mem_value) / 8 * 1000
+                elif mem_unit == "MB":
+                    runvalues['memory'] = int(mem_value)
+                elif mem_unit == "MW":
+                    runvalues['memory'] = int(mem_value) / 8
             if "nbo" in line.lower():
-                # Should be already set but you never know...
                 runvalues['nbo'] = True
             if "TITLE=" in line:
                 # TITLE=FILENAME
                 runvalues['nbo_basefilename'] = line.split('=')[1]
+
+    return runvalues
+
+
+def fill_missing_values(runvalues):
+    """Compute and fill all missing values."""
+    # Setup cluster_section according to number of cores
+    if runvalues['cores'] <= 24:
+        runvalues['cluster_section'] = "HSW24"
+    elif runvalues['cores'] <= 28:
+        runvalues['cluster_section'] = "BDW28"
+    elif runvalues['cores'] > 28 and runvalues['nodes'] == 1:
+        raise ValueError("Number of cores cannot exceed 28 for one node.")
+    # TODO: manage the multiple nodes case
+
+    # TODO; setup memory properly
+
     return runvalues
 
 
@@ -322,9 +320,9 @@ def create_run_file(input_file, output, runvalues):
     runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
     out.extend(['# Start Gaussian\n',
                 '( '])
-    if runvalues['nproc_in_input'] is None:  # nproc line not in input
+    if not runvalues['nproc_in_input']:  # nproc line not in input
         out.extend('echo %NProcShared=' + str(runvalues['cores']) + '; ')
-    if runvalues['memory_in_input'] is None:  # memory line not in input
+    if not runvalues['memory_in_input']:  # memory line not in input
         out.extend('echo %Mem=' + str(gaussian_memory) + 'MB ; ')
     out.extend(['cat ' + shlex.quote(input_file) + ' ) | ',
                 'timeout ' + str(runtime) + ' g09 > ',
