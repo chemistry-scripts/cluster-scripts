@@ -23,14 +23,35 @@ def main():
     """
     Set up the computation and submit it to the job scheduler.
 
-    Checks existence of input, and non-existence of batch file
-    (e.g. computation has not already been submitted).
-    Run computation
+    Precedence of parameters for submission:
+        - Command line parameters
+        - Gaussian script
+        - Default parameters
+
+    Structure of program:
+    - Define runvalues:
+        - Fill Defaults
+        - Parse file and replace appropriately
+        - Get command-line parameters and replace appropriately
+    - Compute missing values
+        - Memory
+        - Number of nodes if appropriate
+        - Cluster section (HSW24/BDW28)
+        - Convert filenames to printable values
+    - Check parameters
+        - Existence of files (or non-existence...)
+        - Compatibility nproc/nodes/memory
+    - Build script file
+    - Submit script
     """
+    # Setup runvalues with default settings
+    runvalues = default_run_values()
+
     # Get parameters from command line
-    runvalues = get_options()
+    cmdline_args = get_options()
+
     # Retrieve input file name, create output file name
-    input_file_name = runvalues['inputfile']
+    input_file_name = cmdline_args['inputfile']
     output = input_file_name + ".sh"
     # Check existence of input file
     if not os.path.exists(input_file_name):
@@ -48,6 +69,7 @@ def main():
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
     os.system('dos2unix {0}'.format(shlex.quote(input_file_name)))
+
     # Get computation parameters from input file
     runvalues = get_values_from_input_file(input_file_name, runvalues)
     # If NBO required, retrieve NBO values
@@ -58,7 +80,7 @@ def main():
     # Submit the script
     os.system('sbatch {0}'.format(shlex.quote(output)))
     print("job {0} submitted with a walltime of {1} hours"
-          .format(input_file_name, runvalues["walltime"]))
+          .format(input_file_name, runvalues['walltime']))
 
 
 def get_options():
@@ -66,12 +88,14 @@ def get_options():
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('-n', '--nproc', default=24, type=int,
-                        help="Number of cores used for the computation")
+    parser.add_argument('-p', '--proc', default=24, type=int,
+                        help="Number of processors used for the computation")
+    parser.add_argument('-n', '--nodes', default=1, type=int,
+                        help="Number of nodes used for the computation")
     parser.add_argument('-t', '--walltime', default="24:00:00", type=str,
                         help="Maximum time allowed for the computation")
     parser.add_argument('-m', '--memory', type=int,
-                        help="Amount of memory allowed for the computation")
+                        help="Amount of memory allowed for the computation, in MB")
     parser.add_argument('inputfile', type=str, nargs='+',
                         help='The input file to submit')
 
@@ -81,24 +105,16 @@ def get_options():
         print(str(error))  # Print something like "option -a not recognized"
         sys.exit(2)
 
-    runvalues = dict.fromkeys(['inputfile', 'cores', 'walltime', 'memory',
-                               'chk', 'oldchk', 'rwf', 'nproc_in_input',
-                               'memory_in_input'])
     # Get values from parser
-    runvalues['inputfile'] = os.path.basename(args.inputfile[0])
-    runvalues['cores'] = args.nproc
-    runvalues['walltime'] = args.walltime
+    cmdline_args = dict.fromkeys(['inputfile', 'walltime', 'memory', 'cores', 'nodes'])
+    cmdline_args['inputfile'] = os.path.basename(args.inputfile[0])
+    cmdline_args['walltime'] = args.walltime
+    cmdline_args['cores'] = args.nproc
+    cmdline_args['nodes'] = args.nodes
     if args.memory:
-        runvalues['memory'] = args.memory
+        cmdline_args['memory'] = args.memory
 
-    # Initialize empty values
-    runvalues['chk'] = set()
-    runvalues['oldchk'] = set()
-    runvalues['rwf'] = set()
-    runvalues['nbo'] = False
-    runvalues['nbo_basefilename'] = ''
-
-    return runvalues
+    return cmdline_args
 
 
 def get_values_from_input_file(input_file, runvalues):
@@ -139,6 +155,28 @@ def get_values_from_input_file(input_file, runvalues):
         runvalues['cluster_section'] = "BDW28"
     else:
         raise ValueError("Number of cores cannot exceed 28")
+    return runvalues
+
+
+def default_run_values():
+    """Fill default runvalues."""
+    # Setup runvalues
+    runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
+                               'chk', 'oldchk', 'rwf', 'nproc_in_input', 'memory_in_input',
+                               'nbo', 'nbo_basefilename'])
+    runvalues['inputfile'] = ''
+    runvalues['outputfile'] = ''
+    runvalues['nodes'] = 1
+    runvalues['cores'] = 24
+    runvalues['walltime'] = '24:00:00'
+    runvalues['memory'] = 1000  # In MB
+    runvalues['chk'] = set()
+    runvalues['oldchk'] = set()
+    runvalues['rwf'] = set()
+    runvalues['nproc_in_input'] = False
+    runvalues['memory_in_input'] = False
+    runvalues['nbo'] = False
+    runvalues['nbo_basefilename'] = ''
     return runvalues
 
 
