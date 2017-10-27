@@ -87,6 +87,9 @@ def main():
     # Get computation parameters from input file
     runvalues = get_values_from_input_file(input_file_name, runvalues)
 
+    # Merge command-line parameters into runvalues
+    runvalues = fill_from_commandline(runvalues, cmdline_args)
+
     # Fill with missing values and consolidate the whole thing
     runvalues = fill_missing_values(runvalues)
 
@@ -130,6 +133,20 @@ def get_options():
         cmdline_args['memory'] = args.memory
 
     return cmdline_args
+
+
+def fill_from_commandline(runvalues, cmdline_args):
+    """Merge command line arguments into runvalues."""
+    runvalues['inputfile'] = cmdline_args['inputfile']
+    if cmdline_args['nodes']:
+        runvalues['nodes'] = cmdline_args['nodes']
+    if cmdline_args['cores']:
+        runvalues['cores'] = cmdline_args['cores']
+    if cmdline_args['walltime']:
+        runvalues['walltime'] = cmdline_args['walltime']
+    if cmdline_args['memory']:
+        runvalues['memory'] = cmdline_args['memory']
+    return runvalues
 
 
 def default_run_values():
@@ -218,7 +235,7 @@ def create_shlexnames(runvalues):
     """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
     input_basename = os.path.splitext(runvalues['inputfile'])[0]
-    shlexnames['inputname'] = shlex.quote(runvalues['inputfile'])
+    shlexnames['inputfile'] = shlex.quote(runvalues['inputfile'])
     shlexnames['basename'] = shlex.quote(input_basename)
     if runvalues['chk'] is not None:
         shlexnames['chk'] = [shlex.quote(chk) for chk in runvalues['chk']]
@@ -280,7 +297,7 @@ def create_run_file(output, runvalues):
     # #SBATCH --ntasks-per-node=24
     # #SBATCH --threads-per-core=1
     out = ['#!/bin/bash\n',
-           '#SBATCH -J ' + shlexnames['inputname'] + '\n',
+           '#SBATCH -J ' + shlexnames['inputfile'] + '\n',
            '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
@@ -309,7 +326,7 @@ def create_run_file(output, runvalues):
                 'mkdir -p $GAUSS_SCRDIR\n',
                 '\n',
                 '# Copy input file\n',
-                'cp -f ' + shlexnames['inputname'] + ' $GAUSS_SCRDIR\n\n'])
+                'cp -f ' + shlexnames['inputfile'] + ' $GAUSS_SCRDIR\n\n'])
     # If chk file is defined in input and exists, copy it in scratch
     if runvalues['chk'] != set():
         out.extend('# Copy chk file in scratch if it exists\n')
