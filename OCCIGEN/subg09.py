@@ -202,7 +202,7 @@ def get_values_from_input_file(input_file, runvalues):
                     runvalues['memory'] = int(mem_value)
                 elif mem_unit == "MW":
                     runvalues['memory'] = int(mem_value) / 8
-            if "nbo" in line.lower():
+            if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
             if "TITLE=" in line:
                 # TITLE=FILENAME
