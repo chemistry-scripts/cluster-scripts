@@ -15,6 +15,7 @@ Requires Python3 to be installed.
 import argparse
 import sys
 import os
+import logging
 import shlex
 import re
 
@@ -44,6 +45,18 @@ def main():
     - Build script file
     - Submit script
     """
+    # Setup logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(stream_handler)
+
     # Setup runvalues with default settings
     runvalues = default_run_values()
 
@@ -253,8 +266,13 @@ def create_run_file(output, runvalues):
 
     Instructions adapted from www.cines.fr
     """
+    # Setup logging
+    logger = logging.getLogger()
+
     # Setup names to use in file
     shlexnames = create_shlexnames(runvalues)
+    logger.debug("Runvalues:  %s", runvalues)
+    logger.debug("Shlexnames: %s", shlexnames)
 
     # TODO: multi-nodes
     # #SBATCH --nodes=2
