@@ -106,9 +106,9 @@ def get_options():
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('-p', '--proc', default=24, type=int,
+    parser.add_argument('-p', '--proc', type=int,
                         help="Number of processors used for the computation")
-    parser.add_argument('-n', '--nodes', default=1, type=int,
+    parser.add_argument('-n', '--nodes', type=int,
                         help="Number of nodes used for the computation")
     parser.add_argument('-t', '--walltime', default="24:00:00", type=str,
                         help="Maximum time allowed for the computation")
@@ -127,8 +127,10 @@ def get_options():
     cmdline_args = dict.fromkeys(['inputfile', 'walltime', 'memory', 'cores', 'nodes'])
     cmdline_args['inputfile'] = os.path.basename(args.inputfile[0])
     cmdline_args['walltime'] = args.walltime
-    cmdline_args['cores'] = args.proc
-    cmdline_args['nodes'] = args.nodes
+    if args.proc:
+        cmdline_args['cores'] = args.proc
+    if args.nodes:
+        cmdline_args['nodes'] = args.nodes
     if args.memory:
         cmdline_args['memory'] = args.memory
 
