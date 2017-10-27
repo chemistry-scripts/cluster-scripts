@@ -52,19 +52,20 @@ def main():
 
     # Retrieve input file name, create output file name
     input_file_name = cmdline_args['inputfile']
-    output = input_file_name + ".sh"
+    script_file_name = input_file_name + ".sh"
+
     # Check existence of input file
     if not os.path.exists(input_file_name):
         print("=========== !!! WARNING !!! ===========")
         print("The input file was not found.")
         sys.exit()
     # Check that file input.sh does not exist, not to start twice the same job
-    if os.path.exists(output):
+    if os.path.exists(script_file_name):
         print("=========== !!! WARNING !!! ===========")
         print(" The corresponding .sh file already exists ")
         print("Make sure it is not a mistake, erase it and rerun the script")
         print("Alternatively, you can submit the job directly with:")
-        print("sbatch {0}".format(shlex.quote(output)))
+        print("sbatch {0}".format(shlex.quote(script_file_name)))
         sys.exit()
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
@@ -77,9 +78,9 @@ def main():
     runvalues = fill_missing_values(runvalues)
 
     # Create run file for gaussian
-    create_run_file(input_file_name, output, runvalues)
+    create_run_file(script_file_name, runvalues)
     # Submit the script
-    os.system('sbatch {0}'.format(shlex.quote(output)))
+    os.system('sbatch {0}'.format(shlex.quote(script_file_name)))
     print("job {0} submitted with a walltime of {1} hours"
           .format(input_file_name, runvalues['walltime']))
 
@@ -110,7 +111,7 @@ def get_options():
     cmdline_args = dict.fromkeys(['inputfile', 'walltime', 'memory', 'cores', 'nodes'])
     cmdline_args['inputfile'] = os.path.basename(args.inputfile[0])
     cmdline_args['walltime'] = args.walltime
-    cmdline_args['cores'] = args.nproc
+    cmdline_args['cores'] = args.proc
     cmdline_args['nodes'] = args.nodes
     if args.memory:
         cmdline_args['memory'] = args.memory
@@ -203,14 +204,13 @@ def fill_missing_values(runvalues):
 def create_shlexnames(runvalues):
     """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
-    input_basename = os.path.splitext(runvalues['input_file'])[0]
-    shlexnames['inputname'] = shlex.quote(runvalues['input_file'])
+    input_basename = os.path.splitext(runvalues['inputfile'])[0]
+    shlexnames['inputname'] = shlex.quote(runvalues['inputfile'])
     shlexnames['basename'] = shlex.quote(input_basename)
     if runvalues['chk'] is not None:
         shlexnames['chk'] = [shlex.quote(chk) for chk in runvalues['chk']]
     if runvalues['oldchk'] is not None:
-        shlexnames['oldchk'] = [shlex.quote(oldchk) for oldchk in
-                                runvalues['oldchk']]
+        shlexnames['oldchk'] = [shlex.quote(oldchk) for oldchk in runvalues['oldchk']]
     if runvalues['rwf'] is not None:
         shlexnames['rwf'] = [shlex.quote(rwf) for rwf in runvalues['rwf']]
     return shlexnames
@@ -239,7 +239,7 @@ def compute_memory(runvalues):
     return (memory, gaussian_memory)
 
 
-def create_run_file(input_file, output, runvalues):
+def create_run_file(output, runvalues):
     """
     Create .sh file that contains the script to actually run on the server.
 
@@ -333,7 +333,7 @@ def create_run_file(input_file, output, runvalues):
         out.extend('echo %NProcShared=' + str(runvalues['cores']) + '; ')
     if not runvalues['memory_in_input']:  # memory line not in input
         out.extend('echo %Mem=' + str(runvalues['gaussian_memory']) + 'MB ; ')
-    out.extend(['cat ' + shlex.quote(input_file) + ' ) | ',
+    out.extend(['cat ' + shlexnames['inputfile'] + ' ) | ',
                 'timeout ' + str(runtime) + ' g09 > ',
                 '' + shlexnames['basename'] + '.log\n',
                 '\n'])
