@@ -187,10 +187,12 @@ def fill_missing_values(runvalues):
         runvalues['cluster_section'] = "BDW28"
     elif runvalues['cores'] > 28 and runvalues['nodes'] == 1:
         raise ValueError("Number of cores cannot exceed 28 for one node.")
+    elif runvalues['nodes'] > 1:
+        raise ValueError("Multiple nodes not supported at the moment.")
 
     # TODO: manage the multiple nodes case
 
-    # TODO; setup memory properly
+    # TODO; Better memory checks
     memory, gaussian_memory = compute_memory(runvalues)
     runvalues['memory'] = memory
     runvalues['gaussian_memory'] = gaussian_memory
@@ -266,7 +268,7 @@ def create_run_file(input_file, output, runvalues):
            '#SBATCH --mail-user=user@server.org\n',
            '#SBATCH --nodes=1\n',
            '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
-           '#SBATCH --mem=' + str(memory) + '\n',
+           '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
            '#SBATCH --time=' + runvalues['walltime'] + '\n',
            '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
            '\n']
@@ -330,7 +332,7 @@ def create_run_file(input_file, output, runvalues):
     if not runvalues['nproc_in_input']:  # nproc line not in input
         out.extend('echo %NProcShared=' + str(runvalues['cores']) + '; ')
     if not runvalues['memory_in_input']:  # memory line not in input
-        out.extend('echo %Mem=' + str(gaussian_memory) + 'MB ; ')
+        out.extend('echo %Mem=' + str(runvalues['gaussian_memory']) + 'MB ; ')
     out.extend(['cat ' + shlex.quote(input_file) + ' ) | ',
                 'timeout ' + str(runtime) + ' g09 > ',
                 '' + shlexnames['basename'] + '.log\n',
