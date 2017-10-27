@@ -129,7 +129,8 @@ def default_run_values():
     runvalues['nodes'] = 1
     runvalues['cores'] = 24
     runvalues['walltime'] = '24:00:00'
-    runvalues['memory'] = 1000  # In MB
+    runvalues['memory'] = 4000  # In MB
+    runvalues['gaussian_memory'] = 1000  # in MB
     runvalues['chk'] = set()
     runvalues['oldchk'] = set()
     runvalues['rwf'] = set()
@@ -186,18 +187,22 @@ def fill_missing_values(runvalues):
         runvalues['cluster_section'] = "BDW28"
     elif runvalues['cores'] > 28 and runvalues['nodes'] == 1:
         raise ValueError("Number of cores cannot exceed 28 for one node.")
+
     # TODO: manage the multiple nodes case
 
     # TODO; setup memory properly
+    memory, gaussian_memory = compute_memory(runvalues)
+    runvalues['memory'] = memory
+    runvalues['gaussian_memory'] = gaussian_memory
 
     return runvalues
 
 
-def create_shlexnames(input_file, runvalues):
+def create_shlexnames(runvalues):
     """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
-    input_basename = os.path.splitext(input_file)[0]
-    shlexnames['inputname'] = shlex.quote(input_file)
+    input_basename = os.path.splitext(runvalues['input_file'])[0]
+    shlexnames['inputname'] = shlex.quote(runvalues['input_file'])
     shlexnames['basename'] = shlex.quote(input_basename)
     if runvalues['chk'] is not None:
         shlexnames['chk'] = [shlex.quote(chk) for chk in runvalues['chk']]
@@ -246,12 +251,14 @@ def create_run_file(input_file, output, runvalues):
 
     Instructions adapted from www.cines.fr
     """
-    # Compute memory requirements:
-    memory, gaussian_memory = compute_memory(runvalues)
-
     # Setup names to use in file
-    shlexnames = create_shlexnames(input_file, runvalues)
+    shlexnames = create_shlexnames(runvalues)
 
+    # TODO: multi-nodes
+    # #SBATCH --nodes=2
+    # #SBATCH --ntasks=48
+    # #SBATCH --ntasks-per-node=24
+    # #SBATCH --threads-per-core=1
     out = ['#!/bin/bash\n',
            '#SBATCH -J ' + shlexnames['inputname'] + '\n',
            '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
