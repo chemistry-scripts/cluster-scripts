@@ -15,62 +15,105 @@ Requires Python3 to be installed.
 import argparse
 import sys
 import os
+import logging
 import shlex
 import re
 
 
 def main():
     """
-    Do all the job.
+    Set up the computation and submit it to the job scheduler.
 
-    Checks existence of input, and non-existence of batch file (e.g.
-    computation has not already been submitted).
-    Run computation
+    Precedence of parameters for submission:
+        - Command line parameters
+        - Gaussian script
+        - Default parameters
+
+    Structure of program:
+    - Define runvalues:
+        - Fill Defaults
+        - Parse file and replace appropriately
+        - Get command-line parameters and replace appropriately
+    - Compute missing values
+        - Memory
+        - Number of nodes if appropriate
+        - Cluster section (HSW24/BDW28)
+        - Convert filenames to printable values
+    - Check parameters
+        - Existence of files (or non-existence...)
+        - Compatibility nproc/nodes/memory
+    - Build script file
+    - Submit script
     """
+    # Setup logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(stream_handler)
+
+    # Setup runvalues with default settings
+    runvalues = default_run_values()
+
     # Get parameters from command line
-    runvalues = get_options()
+    cmdline_args = get_options()
+
     # Retrieve input file name, create output file name
-    input_file_name = runvalues['inputfile']
-    output = input_file_name + ".sh"
+    input_file_name = cmdline_args['inputfile']
+    script_file_name = input_file_name + ".sh"
+
     # Check existence of input file
     if not os.path.exists(input_file_name):
         print("=========== !!! WARNING !!! ===========")
         print("The input file was not found.")
         sys.exit()
     # Check that file input.sh does not exist, not to start twice the same job
-    if os.path.exists(output):
+    if os.path.exists(script_file_name):
         print("=========== !!! WARNING !!! ===========")
         print(" The corresponding .sh file already exists ")
         print("Make sure it is not a mistake, erase it and rerun the script")
         print("Alternatively, you can submit the job directly with:")
-        print("sbatch {0}".format(shlex.quote(output)))
+        print("sbatch {0}".format(shlex.quote(script_file_name)))
         sys.exit()
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
     os.system('dos2unix {0}'.format(shlex.quote(input_file_name)))
-    # Backfill parameters not set in the runvalues
-    runvalues = get_defaultvalues(runvalues)
-    # Create run file for orca
-    create_run_file(input_file_name, output, runvalues)
+
+    # Get computation parameters from input file
+    runvalues = get_values_from_input_file(input_file_name, runvalues)
+
+    # Merge command-line parameters into runvalues
+    runvalues = fill_from_commandline(runvalues, cmdline_args)
+
+    # Fill with missing values and consolidate the whole thing
+    runvalues = fill_missing_values(runvalues)
+
+    # Create run file for gaussian
+    create_run_file(script_file_name, runvalues)
     # Submit the script
-    os.system('sbatch {0}'.format(shlex.quote(output)))
+    os.system('sbatch {0}'.format(shlex.quote(script_file_name)))
     print("job {0} submitted with a walltime of {1} hours"
-          .format(input_file_name, runvalues["walltime"]))
+          .format(input_file_name, runvalues['walltime']))
 
 
 def get_options():
-    """Get command line options and accordingly set computation parameters."""
+    """Check command line options and accordingly set computation parameters."""
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('-n', '--nodes', default=1, type=int,
+    parser.add_argument('-p', '--proc', type=int,
+                        help="Number of processors used for the computation")
+    parser.add_argument('-n', '--nodes', type=int,
                         help="Number of nodes used for the computation")
-    parser.add_argument('-p', '--proc', default=24, type=int,
-                        help="Number of cores used for the computation")
     parser.add_argument('-t', '--walltime', default="24:00:00", type=str,
                         help="Maximum time allowed for the computation")
     parser.add_argument('-m', '--memory', type=int,
-                        help="Amount of memory allowed for the computation")
+                        help="Amount of memory allowed for the computation, in MB")
     parser.add_argument('inputfile', type=str, nargs='+',
                         help='The input file to submit')
 
@@ -80,77 +123,149 @@ def get_options():
         print(str(error))  # Print something like "option -a not recognized"
         sys.exit(2)
 
-    runvalues = dict.fromkeys(['inputfile', 'nodes', 'cores', 'walltime', 'memory'])
     # Get values from parser
-    runvalues['inputfile'] = os.path.basename(args.inputfile[0])
-    runvalues['nodes'] = args.nodes
-    runvalues['cores'] = args.nproc
-    runvalues['walltime'] = args.walltime
+    cmdline_args = dict.fromkeys(['inputfile', 'walltime', 'memory', 'cores', 'nodes'])
+    cmdline_args['inputfile'] = os.path.basename(args.inputfile[0])
+    cmdline_args['walltime'] = args.walltime
+    if args.proc:
+        cmdline_args['cores'] = args.proc
+    if args.nodes:
+        cmdline_args['nodes'] = args.nodes
+    if args.memory:
+        cmdline_args['memory'] = args.memory
 
+    return cmdline_args
+
+
+def fill_from_commandline(runvalues, cmdline_args):
+    """Merge command line arguments into runvalues."""
+    runvalues['inputfile'] = cmdline_args['inputfile']
+    if cmdline_args['nodes']:
+        runvalues['nodes'] = cmdline_args['nodes']
+    if cmdline_args['cores']:
+        runvalues['cores'] = cmdline_args['cores']
+    if cmdline_args['walltime']:
+        runvalues['walltime'] = cmdline_args['walltime']
+    if cmdline_args['memory']:
+        runvalues['memory'] = cmdline_args['memory']
     return runvalues
 
 
-def get_defaultvalues(runvalues):
-    """Fill the runvalues table with the default values in case they are not existing already."""
-    if runvalues['memory'] is None:
-        if runvalues['cores'] == 24:  # Single node, allow 64GB nodes
-            runvalues['memory'] = 58000
-        else:  # Shared nodes
-            runvalues['memory'] = 5000 * runvalues['cores']
+def default_run_values():
+    """Fill default runvalues."""
+    # Setup runvalues
+    runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
+                               'chk', 'oldchk', 'rwf', 'nproc_in_input', 'memory_in_input',
+                               'nbo', 'nbo_basefilename', 'cluster_section'])
+    runvalues['inputfile'] = ''
+    runvalues['outputfile'] = ''
+    runvalues['nodes'] = 1
+    runvalues['cores'] = 24
+    runvalues['walltime'] = '24:00:00'
+    runvalues['memory'] = 4000  # In MB
+    runvalues['gaussian_memory'] = 1000  # in MB
+    runvalues['chk'] = set()
+    runvalues['oldchk'] = set()
+    runvalues['rwf'] = set()
+    runvalues['nproc_in_input'] = False
+    runvalues['memory_in_input'] = False
+    runvalues['nbo'] = False
+    runvalues['nbo_basefilename'] = ''
+    runvalues['cluster_section'] = 'HSW24'
     return runvalues
 
 
 def get_values_from_input_file(input_file, runvalues):
     """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
     with open(input_file, 'r') as file:
-        # Go through lines and test if they are containing nproc, mem related
+        # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
         for line in file.readlines():
             if "%nproc" in line.lower():
                 runvalues['nproc_in_input'] = True
-                runvalues["cores"] = int(line.split("=")[1].rstrip('\n'))
+                runvalues['cores'] = int(line.split("=")[1].rstrip('\n'))
             if "%chk" in line.lower():
-                runvalues["chk"].add(line.split("=")[1].rstrip('\n'))
+                runvalues['chk'].add(line.split("=")[1].rstrip('\n'))
             if "%oldchk" in line.lower():
-                runvalues["oldchk"].add(line.split("=")[1].rstrip('\n'))
+                runvalues['oldchk'].add(line.split("=")[1].rstrip('\n'))
             if "%rwf" in line.lower():
-                runvalues["rwf"].add(line.split("=")[1].rstrip('\n'))
+                runvalues['rwf'].add(line.split("=")[1].rstrip('\n'))
             if "%mem" in line.lower():
                 runvalues['memory_in_input'] = True
                 mem_line = line.split("=")[1].rstrip('\n')
-                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)',
-                                               mem_line).groups()
+                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
                 if mem_unit == "GB":
-                    runvalues["memory"] = int(mem_value) * 1000
+                    runvalues['memory'] = int(mem_value) * 1000
                 elif mem_unit == "GW":
-                    runvalues["memory"] = int(mem_value) / 8 * 1000
+                    runvalues['memory'] = int(mem_value) / 8 * 1000
                 elif mem_unit == "MB":
-                    runvalues["memory"] = int(mem_value)
+                    runvalues['memory'] = int(mem_value)
                 elif mem_unit == "MW":
-                    runvalues["memory"] = int(mem_value) / 8
-            if "nbo" in line.lower():
+                    runvalues['memory'] = int(mem_value) / 8
+            if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
+            if "TITLE=" in line:
+                # TITLE=FILENAME
+                runvalues['nbo_basefilename'] = line.split('=')[1]
 
-    # Setup cluster_section according to number of cores
-    if runvalues["cores"] <= 24:
-        runvalues['cluster_section'] = "HSW24"
-    elif runvalues["cores"] <= 28:
-        runvalues['cluster_section'] = "BDW28"
-    else:
-        raise ValueError("Number of cores cannot exceed 28")
     return runvalues
 
 
-def create_shlexnames(input_file):
+def fill_missing_values(runvalues):
+    """Compute and fill all missing values."""
+    # Setup cluster_section according to number of cores
+    if runvalues['cores'] <= 24:
+        runvalues['cluster_section'] = "HSW24"
+    elif runvalues['cores'] <= 28:
+        runvalues['cluster_section'] = "BDW28"
+    elif runvalues['cores'] > 28 and runvalues['nodes'] == 1:
+        raise ValueError("Number of cores cannot exceed 28 for one node.")
+    elif runvalues['nodes'] > 1:
+        raise ValueError("Multiple nodes not supported at the moment.")
+
+    # TODO: manage the multiple nodes case
+
+    # TODO; Better memory checks
+    memory, gaussian_memory = compute_memory(runvalues)
+    runvalues['memory'] = memory
+    runvalues['gaussian_memory'] = gaussian_memory
+
+    return runvalues
+
+
+def create_shlexnames(runvalues):
     """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
-    input_basename = os.path.splitext(input_file)[0]
-    shlexnames['inputname'] = shlex.quote(input_file)
+    input_basename = os.path.splitext(runvalues['inputfile'])[0]
+    shlexnames['inputfile'] = shlex.quote(runvalues['inputfile'])
     shlexnames['basename'] = shlex.quote(input_basename)
     return shlexnames
 
 
-def create_run_file(input_file, output, runvalues):
+def compute_memory(runvalues):
+    """
+    Return ideal memory value for OCCIGEN.
+
+    4GB per core, or memory from input + 4000 MB for overhead.
+    Computed to use as close as possible the memory available.
+    """
+    if runvalues['memory'] is not None:
+        # Memory already defined in input file
+        gaussian_memory = runvalues['memory']
+        # SLURM memory requirement is gaussian_memory + overhead, as long as
+        # it fits within the general node requirements
+        if gaussian_memory + 4000 < runvalues['cores'] * 4800:
+            memory = gaussian_memory + 4000
+        else:
+            memory = runvalues['cores'] * 4800
+    else:
+        gaussian_memory = runvalues['cores'] * 4000
+        memory = runvalues['cores'] * 4800
+
+    return (memory, gaussian_memory)
+
+
+def create_run_file(output, runvalues):
     """
     Create .sh file that contains the script to actually run on the server.
 
@@ -164,18 +279,29 @@ def create_run_file(input_file, output, runvalues):
 
     Instructions adapted from www.cines.fr
     """
-    # Setup names to use in file
-    shlexnames = create_shlexnames(input_file)
+    # Setup logging
+    logger = logging.getLogger()
 
     # FROM OCCIGEN Reference:
     # =====> export OMP_NUM_THREADS=24
     # =====> export KMP_AFFINITY=compact,1,0
     # =====> Start ORCA with full path
+    # Setup names to use in file
+    shlexnames = create_shlexnames(runvalues)
+    logger.debug("Runvalues:  %s", runvalues)
+    logger.debug("Shlexnames: %s", shlexnames)
+
+    # TODO: multi-nodes
+    # On SLURM, memory is defined per node
+    # #SBATCH --nodes=2
+    # #SBATCH --ntasks=48
+    # #SBATCH --ntasks-per-node=24
+    # #SBATCH --threads-per-core=1
     out = ['#!/bin/bash\n',
-           '#SBATCH -J ' + shlexnames['inputname'] + '\n',
+           '#SBATCH -J ' + shlexnames['inputfile'] + '\n',
+           '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
-           '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --nodes=' + str(runvalues['nodes']) + '\n',
            '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
            '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
