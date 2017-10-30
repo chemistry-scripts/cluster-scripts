@@ -112,7 +112,7 @@ def get_options():
                         help="Maximum time allowed for the computation")
     parser.add_argument('-m', '--memory', type=int,
                         help="Amount of memory allowed for the computation, in MB")
-    parser.add_argument('inputfile', type=str, nargs='+',
+    parser.add_argument('inputfile', type=str, nargs=1,
                         help='The input file to submit')
 
     try:
@@ -153,21 +153,14 @@ def default_run_values():
     """Fill default runvalues."""
     # Setup runvalues
     runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
-                               'chk', 'oldchk', 'rwf', 'nproc_in_input', 'memory_in_input',
-                               'nbo', 'nbo_basefilename', 'cluster_section'])
+                               'nproc_in_input', 'cluster_section'])
     runvalues['inputfile'] = ''
     runvalues['outputfile'] = ''
     runvalues['nodes'] = 1
     runvalues['cores'] = 24
     runvalues['walltime'] = '24:00:00'
-    runvalues['memory'] = 4000  # In MB
-    runvalues['chk'] = set()
-    runvalues['oldchk'] = set()
-    runvalues['rwf'] = set()
+    runvalues['memory'] = 58000  # In MB
     runvalues['nproc_in_input'] = False
-    runvalues['memory_in_input'] = False
-    runvalues['nbo'] = False
-    runvalues['nbo_basefilename'] = ''
     runvalues['cluster_section'] = 'HSW24'
     return runvalues
 
