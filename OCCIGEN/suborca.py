@@ -2,14 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-Submit script for Gaussian09 for Computing Clusters.
+Submit script for Orca for Computing Clusters.
 
-Original script for LISA by Jos Mulder
-email j.r.mulder -at- vu.nl
-Adapted for Cines OCCIGEN cluster
-Last Update 2016-02-04 by Emmanuel Nicolas
+Script adapted for Cines OCCIGEN cluster
+Last Update 2017-10-30 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
-Requires Python3 to be installed.
+Requires Python3 to be installed and accessible.
 """
 
 import argparse
@@ -26,7 +24,7 @@ def main():
 
     Precedence of parameters for submission:
         - Command line parameters
-        - Gaussian script
+        - ORCA script
         - Default parameters
 
     Structure of program:
@@ -93,7 +91,7 @@ def main():
     # Fill with missing values and consolidate the whole thing
     runvalues = fill_missing_values(runvalues)
 
-    # Create run file for gaussian
+    # Create run file for ORCA
     create_run_file(script_file_name, runvalues)
     # Submit the script
     os.system('sbatch {0}'.format(shlex.quote(script_file_name)))
@@ -163,7 +161,6 @@ def default_run_values():
     runvalues['cores'] = 24
     runvalues['walltime'] = '24:00:00'
     runvalues['memory'] = 4000  # In MB
-    runvalues['gaussian_memory'] = 1000  # in MB
     runvalues['chk'] = set()
     runvalues['oldchk'] = set()
     runvalues['rwf'] = set()
@@ -226,9 +223,8 @@ def fill_missing_values(runvalues):
     # TODO: manage the multiple nodes case
 
     # TODO; Better memory checks
-    memory, gaussian_memory = compute_memory(runvalues)
+    memory = compute_memory(runvalues)
     runvalues['memory'] = memory
-    runvalues['gaussian_memory'] = gaussian_memory
 
     return runvalues
 
@@ -249,20 +245,13 @@ def compute_memory(runvalues):
     4GB per core, or memory from input + 4000 MB for overhead.
     Computed to use as close as possible the memory available.
     """
+    # FIXME: recompute
     if runvalues['memory'] is not None:
-        # Memory already defined in input file
-        gaussian_memory = runvalues['memory']
-        # SLURM memory requirement is gaussian_memory + overhead, as long as
-        # it fits within the general node requirements
-        if gaussian_memory + 4000 < runvalues['cores'] * 4800:
-            memory = gaussian_memory + 4000
-        else:
-            memory = runvalues['cores'] * 4800
+        memory = runvalues['cores'] * 4800
     else:
-        gaussian_memory = runvalues['cores'] * 4000
         memory = runvalues['cores'] * 4800
 
-    return (memory, gaussian_memory)
+    return memory
 
 
 def create_run_file(output, runvalues):
