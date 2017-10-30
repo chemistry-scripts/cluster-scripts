@@ -294,6 +294,7 @@ def create_run_file(output, runvalues):
     logger.debug("Shlexnames: %s", shlexnames)
 
     # TODO: multi-nodes
+    # On SLURM, memory is defined per node
     # #SBATCH --nodes=2
     # #SBATCH --ntasks=48
     # #SBATCH --ntasks-per-node=24
