@@ -114,7 +114,7 @@ def get_options():
                         help="Maximum time allowed for the computation")
     parser.add_argument('-m', '--memory', type=int,
                         help="Amount of memory allowed for the computation, in MB")
-    parser.add_argument('inputfile', type=str, nargs='+',
+    parser.add_argument('inputfile', type=str, nargs=1,
                         help='The input file to submit')
 
     try:
@@ -155,8 +155,8 @@ def default_run_values():
     """Fill default runvalues."""
     # Setup runvalues
     runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
-                               'chk', 'oldchk', 'rwf', 'nproc_in_input', 'memory_in_input',
-                               'nbo', 'nbo_basefilename', 'cluster_section'])
+                               'gaussian_memory', 'chk', 'oldchk', 'rwf', 'nproc_in_input',
+                               'memory_in_input', 'nbo', 'nbo_basefilename', 'cluster_section'])
     runvalues['inputfile'] = ''
     runvalues['outputfile'] = ''
     runvalues['nodes'] = 1
