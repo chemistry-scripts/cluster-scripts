@@ -337,7 +337,7 @@ def create_run_file(output, runvalues):
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = max(3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60, 60)
     out.extend(['# Start ORCA\n',
-                'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca < ' + shlex.quote(input_file),
+                'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca < ' + shlexnames['inputfile'],
                 ' > ' + shlexnames['basename'] + '.out\n',
                 '\n'])
     out.extend(['# Move files back to original directory\n',
