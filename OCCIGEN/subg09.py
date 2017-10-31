@@ -4,10 +4,8 @@
 """
 Submit script for Gaussian09 for Computing Clusters.
 
-Original script for LISA by Jos Mulder
-email j.r.mulder -at- vu.nl
-Adapted for Cines OCCIGEN cluster
-Last Update 2016-02-04 by Emmanuel Nicolas
+Script adapted for Cines OCCIGEN cluster
+Last Update 2017-10-30 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -47,10 +45,9 @@ def main():
     """
     # Setup logging
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
     stream_handler.setFormatter(formatter)
