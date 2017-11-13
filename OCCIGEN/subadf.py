@@ -120,25 +120,91 @@ def get_options():
         print(str(error))  # Print something like "option -a not recognized"
         sys.exit(2)
 
-    runvalues = dict.fromkeys(['inputfile', 'cores', 'walltime', 'memory'])
     # Get values from parser
-    runvalues['inputfile'] = os.path.basename(args.inputfile[0])
-    runvalues['cores'] = args.nproc
-    runvalues['walltime'] = args.walltime
+    cmdline_args = dict.fromkeys(['inputfile', 'walltime', 'memory', 'cores', 'nodes'])
+    cmdline_args['inputfile'] = os.path.basename(args.inputfile[0])
+    cmdline_args['walltime'] = args.walltime
+    if args.proc:
+        cmdline_args['cores'] = args.proc
+    if args.nodes:
+        cmdline_args['nodes'] = args.nodes
+    if args.memory:
+        cmdline_args['memory'] = args.memory
 
+    return cmdline_args
+
+
+def fill_from_commandline(runvalues, cmdline_args):
+    """Merge command line arguments into runvalues."""
+    runvalues['inputfile'] = cmdline_args['inputfile']
+    if cmdline_args['nodes']:
+        runvalues['nodes'] = cmdline_args['nodes']
+    if cmdline_args['cores']:
+        runvalues['cores'] = cmdline_args['cores']
+    if cmdline_args['walltime']:
+        runvalues['walltime'] = cmdline_args['walltime']
+    if cmdline_args['memory']:
+        runvalues['memory'] = cmdline_args['memory']
     return runvalues
 
 
-def get_defaultvalues(runvalues):
-    """
-        Fill the runvalues table with the default values in case they are not
-        existing already.
-    """
-    if runvalues['memory'] is None:
-        if runvalues['cores'] == 24:  # Single node, allow 64GB nodes
-            runvalues['memory'] = 58000
-        else:  # Shared nodes
-            runvalues['memory'] = 5000 * runvalues['cores']
+def default_run_values():
+    """Fill default runvalues."""
+    # Setup runvalues
+    runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
+                               'gaussian_memory', 'chk', 'oldchk', 'rwf', 'nproc_in_input',
+                               'memory_in_input', 'nbo', 'nbo_basefilename', 'cluster_section'])
+    runvalues['inputfile'] = ''
+    runvalues['outputfile'] = ''
+    runvalues['nodes'] = 1
+    runvalues['cores'] = 24
+    runvalues['walltime'] = '24:00:00'
+    runvalues['memory'] = 4000  # In MB
+    runvalues['gaussian_memory'] = 1000  # in MB
+    runvalues['chk'] = set()
+    runvalues['oldchk'] = set()
+    runvalues['rwf'] = set()
+    runvalues['nproc_in_input'] = False
+    runvalues['memory_in_input'] = False
+    runvalues['nbo'] = False
+    runvalues['nbo_basefilename'] = ''
+    runvalues['cluster_section'] = 'HSW24'
+    return runvalues
+
+
+def get_values_from_input_file(input_file, runvalues):
+    """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
+    with open(input_file, 'r') as file:
+        # Go through lines and test if they are containing nproc, mem, etc. related
+        # directives.
+        for line in file.readlines():
+            if "%nproc" in line.lower():
+                runvalues['nproc_in_input'] = True
+                runvalues['cores'] = int(line.split("=")[1].rstrip('\n'))
+            if "%chk" in line.lower():
+                runvalues['chk'].add(line.split("=")[1].rstrip('\n'))
+            if "%oldchk" in line.lower():
+                runvalues['oldchk'].add(line.split("=")[1].rstrip('\n'))
+            if "%rwf" in line.lower():
+                runvalues['rwf'].add(line.split("=")[1].rstrip('\n'))
+            if "%mem" in line.lower():
+                runvalues['memory_in_input'] = True
+                mem_line = line.split("=")[1].rstrip('\n')
+                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
+                if mem_unit == "GB":
+                    runvalues['memory'] = int(mem_value) * 1000
+                elif mem_unit == "GW":
+                    runvalues['memory'] = int(mem_value) / 8 * 1000
+                elif mem_unit == "MB":
+                    runvalues['memory'] = int(mem_value)
+                elif mem_unit == "MW":
+                    runvalues['memory'] = int(mem_value) / 8
+            if "nbo6" in line.lower() or "npa6" in line.lower():
+                runvalues['nbo'] = True
+            if "TITLE=" in line:
+                # TITLE=FILENAME
+                runvalues['nbo_basefilename'] = line.split('=')[1]
+
     return runvalues
 
 
