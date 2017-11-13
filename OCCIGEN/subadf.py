@@ -392,12 +392,19 @@ but are overridden if command line arguments are provided.
 When using shared nodes (less than 24 cores), the default memory is 5GB per
 core.
 
-To copy in bashrc:
-  ##### Gaussian 2009
+To copy in bash_profile:
+  # For ADF 2016
   # Load the gaussian module which will set the variable g09root.
-  module load gaussian
-  # Source the g09 setup file
-  source $g09root/g09/bsd/g09.profile
+  module load intel/18.0
+  module load adf/2016.102-openmpi
+
+  # For ADF 2017
+  # Load the gaussian module which will set the variable g09root.
+  module load intel/18.0
+  # To get graphics working
+  export LD_LIBRARY_PATH=/opt/software/occigen/tools/xvfb/1.19/lib:$LD_LIBRARY_PATH
+  export LIBGL_ALWAYS_SOFTWARE=1
+  module load adf/2017.108
 """
 
 
