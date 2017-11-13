@@ -223,9 +223,8 @@ def fill_missing_values(runvalues):
     # TODO: manage the multiple nodes case
 
     # TODO; Better memory checks
-    memory, gaussian_memory = compute_memory(runvalues)
+    memory = compute_memory(runvalues)
     runvalues['memory'] = memory
-    runvalues['gaussian_memory'] = gaussian_memory
 
     return runvalues
 
@@ -253,19 +252,22 @@ def compute_memory(runvalues):
     Computed to use as close as possible the memory available.
     """
     if runvalues['memory'] is not None:
-        # Memory already defined in input file
-        gaussian_memory = runvalues['memory']
-        # SLURM memory requirement is gaussian_memory + overhead, as long as
-        # it fits within the general node requirements
-        if gaussian_memory + 4000 < runvalues['cores'] * 4800:
-            memory = gaussian_memory + 4000
-        else:
-            memory = runvalues['cores'] * 4800
-    else:
-        gaussian_memory = runvalues['cores'] * 4000
-        memory = runvalues['cores'] * 4800
+        memory = runvalues['memory']
+    if runvalues['cores'] < 24:
+        # shared nodes, max 4830MB per core
+        memory = 4800 * runvalues['cores']
+    elif runvalues['cores'] == 24:
+        # 24 cores / 64GB nodes
+        memory = 59000
+    elif runvalues['cores'] <= 28:
+        # 28 cores / 64GB nodes
+        memory = 59000
+    elif runvalues['cores'] > 28 and runvalues['nodes'] == 1:
+        raise ValueError("Number of cores cannot exceed 28 for one node.")
+    elif runvalues['nodes'] > 1:
+        raise ValueError("Multiple nodes not supported at the moment.")
 
-    return (memory, gaussian_memory)
+    return memory
 
 
 def create_run_file(output, runvalues):
