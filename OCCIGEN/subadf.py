@@ -160,12 +160,6 @@ def default_run_values():
     runvalues['cores'] = 24
     runvalues['walltime'] = '24:00:00'
     runvalues['memory'] = 4000  # In MB
-    runvalues['gaussian_memory'] = 1000  # in MB
-    runvalues['chk'] = set()
-    runvalues['oldchk'] = set()
-    runvalues['rwf'] = set()
-    runvalues['nproc_in_input'] = False
-    runvalues['memory_in_input'] = False
     runvalues['nbo'] = False
     runvalues['nbo_basefilename'] = ''
     runvalues['cluster_section'] = 'HSW24'
@@ -177,6 +171,7 @@ def get_values_from_input_file(input_file, runvalues):
     with open(input_file, 'r') as file:
         # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
+        # TODO: get dependencies
         for line in file.readlines():
             if "%nproc" in line.lower():
                 runvalues['nproc_in_input'] = True
@@ -222,7 +217,6 @@ def fill_missing_values(runvalues):
 
     # TODO: manage the multiple nodes case
 
-    # TODO; Better memory checks
     memory = compute_memory(runvalues)
     runvalues['memory'] = memory
 
@@ -235,12 +229,6 @@ def create_shlexnames(runvalues):
     input_basename = os.path.splitext(runvalues['inputfile'])[0]
     shlexnames['inputfile'] = shlex.quote(runvalues['inputfile'])
     shlexnames['basename'] = shlex.quote(input_basename)
-    if runvalues['chk'] is not None:
-        shlexnames['chk'] = [shlex.quote(chk) for chk in runvalues['chk']]
-    if runvalues['oldchk'] is not None:
-        shlexnames['oldchk'] = [shlex.quote(oldchk) for oldchk in runvalues['oldchk']]
-    if runvalues['rwf'] is not None:
-        shlexnames['rwf'] = [shlex.quote(rwf) for rwf in runvalues['rwf']]
     return shlexnames
 
 
@@ -276,9 +264,9 @@ def create_run_file(output, runvalues):
 
     Structure:
         - SBATCH instructions for the queue manager
-        - setup of Gaussian09 on the nodes
+        - setup of ADF on the nodes
         - creation of scratch, copy necessary files
-        - Run Gaussian09
+        - Run ADF
         - Copy appropriate files back to $HOME
         - Cleanup scratch
 
