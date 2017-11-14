@@ -44,7 +44,7 @@ def main():
     """
     # Setup logging
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
 
@@ -282,7 +282,8 @@ def create_run_file(output, runvalues):
            '\n']
     out.extend(['# Load ADF Module\n',
                 'module purge\n',
-                'module load adf/2016.102-openmpi',
+                'module load intel/18.0\n',
+                'module load adf/2016.102-openmpi\n',
                 '\n'])
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
@@ -294,7 +295,7 @@ def create_run_file(output, runvalues):
                 'mkdir -p $SCM_TMPDIR\n',
                 '\n',
                 '# Copy files \n',
-                'cp -f ' + shlexnames['inputname'] + ' $SCM_TMPDIR\n'])
+                'cp -f ' + shlexnames['inputfile'] + ' $SCM_TMPDIR\n'])
     # Copy dependencies when they exist, then jump line
     for dependency in runvalues['dependencies']:
         out.extend(['cp -f ' + dependency + ' $SCM_TMPDIR\n'])
@@ -312,7 +313,7 @@ def create_run_file(output, runvalues):
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = max(3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60, 60)
     out.extend(['# Start ADF\n',
-                'timeout ' + str(runtime) + ' sh < ' + shlex.quote(shlexnames['inputname']),
+                'timeout ' + str(runtime) + ' sh < ' + shlex.quote(shlexnames['inputfile']),
                 ' > ' + shlexnames['basename'] + '.out\n',
                 '\n'])
     out.extend(['# Move files back to original directory\n',
