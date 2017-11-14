@@ -15,7 +15,6 @@ import sys
 import os
 import logging
 import shlex
-import re
 
 
 def main():
@@ -152,14 +151,14 @@ def default_run_values():
     """Fill default runvalues."""
     # Setup runvalues
     runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
-                               'gaussian_memory', 'chk', 'oldchk', 'rwf', 'nproc_in_input',
-                               'memory_in_input', 'nbo', 'nbo_basefilename', 'cluster_section'])
+                               'dependencies', 'nbo', 'nbo_basefilename', 'cluster_section'])
     runvalues['inputfile'] = ''
     runvalues['outputfile'] = ''
     runvalues['nodes'] = 1
     runvalues['cores'] = 24
     runvalues['walltime'] = '24:00:00'
     runvalues['memory'] = 4000  # In MB
+    runvalues['dependencies'] = list()
     runvalues['nbo'] = False
     runvalues['nbo_basefilename'] = ''
     runvalues['cluster_section'] = 'HSW24'
@@ -172,8 +171,12 @@ def get_values_from_input_file(input_file, runvalues):
         # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
         for line in file.readlines():
-            # TODO: get dependencies
-
+            if "dependency:" in line.lower():
+                # line: # dependency: /path/to/file.t21 file.t21
+                dep_line = line.split("dependency:")[1]
+                dep_line = dep_line.split()
+                # Save full path in runvalues
+                runvalues['dependencies'].append(dep_line[0])
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
             if "TITLE=" in line:
@@ -291,7 +294,12 @@ def create_run_file(output, runvalues):
                 'mkdir -p $SCM_TMPDIR\n',
                 '\n',
                 '# Copy files \n',
-                'cp -f ' + shlexnames['inputname'] + ' $SCM_TMPDIR\n\n'])
+                'cp -f ' + shlexnames['inputname'] + ' $SCM_TMPDIR\n'])
+    # Copy dependencies when they exist, then jump line
+    for dependency in runvalues['dependencies']:
+        out.extend(['cp -f ' + dependency + ' $SCM_TMPDIR\n'])
+    out.append('\n')
+    # Job info
     out.extend(['cd $SCM_TMPDIR\n',
                 '\n',
                 '# Print job info in output file\n',
