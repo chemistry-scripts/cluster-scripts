@@ -48,7 +48,6 @@ def main():
     logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
     stream_handler.setFormatter(formatter)
@@ -161,6 +160,8 @@ def default_run_values():
     runvalues['walltime'] = '24:00:00'
     runvalues['memory'] = 58000  # In MB
     runvalues['nproc_in_input'] = False
+    runvalues['nbo'] = False
+    runvalues['nbo_basefilename'] = ''
     runvalues['cluster_section'] = 'HSW24'
     return runvalues
 
@@ -295,7 +296,11 @@ def create_run_file(output, runvalues):
                 'module load intel/18.0\n',
                 'module load openmpi/intel/2.0.2\n',
                 '\n'])
-
+    if runvalues['nbo']:
+        out.extend(['# Setup NBO6\n',
+                    'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
+                    'export PATH=$PATH:$NBOBIN\n',
+                    '\n'])
     out.extend(['# Setup Scratch\n',
                 'export ORCA_TMPDIR=$SCRATCHDIR/orca/$SLURM_JOBID\n',
                 'mkdir -p $ORCA_TMPDIR\n',
