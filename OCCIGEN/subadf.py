@@ -44,7 +44,7 @@ def main():
     """
     # Setup logging
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     stream_handler = logging.StreamHandler()
 
