@@ -292,7 +292,7 @@ def create_run_file(output, runvalues):
                 'export PATH=$PATH:$ORCA_BIN_DIR\n',
                 '\n',
                 '# Copy files \n',
-                'cp -f ' + shlexnames['inputname'] + ' $ORCA_TMPDIR\n\n'])
+                'cp -f ' + shlexnames['inputfile'] + ' $ORCA_TMPDIR\n\n'])
     out.extend(['cd $ORCA_TMPDIR\n',
                 '\n',
                 '# Print job info in output file\n',
@@ -306,11 +306,13 @@ def create_run_file(output, runvalues):
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = max(3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60, 60)
     out.extend(['# Start ORCA\n',
-                'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca < ' + shlexnames['inputfile'],
+                'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca ' + shlexnames['inputfile'],
                 ' > ' + shlexnames['basename'] + '.out\n',
                 '\n'])
     out.extend(['# Move files back to original directory\n',
                 'cp ' + shlexnames['basename'] + '.out $SLURM_SUBMIT_DIR\n',
+                'cp ' + shlexnames['basename'] + '.gbw $SLURM_SUBMIT_DIR\n',
+                'cp ' + shlexnames['basename'] + '.xyz $SLURM_SUBMIT_DIR\n',
                 '\n'])
     out.extend(['# Empty scratch directory\n',
                 'rm -rf $ORCA_TMPDIR\n',
