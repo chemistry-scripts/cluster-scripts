@@ -15,7 +15,6 @@ import sys
 import os
 import logging
 import shlex
-import re
 
 
 def main():
@@ -172,27 +171,10 @@ def get_values_from_input_file(input_file, runvalues):
         # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
         for line in file.readlines():
-            if "%nproc" in line.lower():
+            if "nprocs" in line.lower():
                 runvalues['nproc_in_input'] = True
-                runvalues['cores'] = int(line.split("=")[1].rstrip('\n'))
-            if "%chk" in line.lower():
-                runvalues['chk'].add(line.split("=")[1].rstrip('\n'))
-            if "%oldchk" in line.lower():
-                runvalues['oldchk'].add(line.split("=")[1].rstrip('\n'))
-            if "%rwf" in line.lower():
-                runvalues['rwf'].add(line.split("=")[1].rstrip('\n'))
-            if "%mem" in line.lower():
-                runvalues['memory_in_input'] = True
-                mem_line = line.split("=")[1].rstrip('\n')
-                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
-                if mem_unit == "GB":
-                    runvalues['memory'] = int(mem_value) * 1000
-                elif mem_unit == "GW":
-                    runvalues['memory'] = int(mem_value) / 8 * 1000
-                elif mem_unit == "MB":
-                    runvalues['memory'] = int(mem_value)
-                elif mem_unit == "MW":
-                    runvalues['memory'] = int(mem_value) / 8
+                proc_line = line.split()
+                runvalues['cores'] = int(proc_line[1])
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
             if "TITLE=" in line:
