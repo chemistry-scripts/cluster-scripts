@@ -221,11 +221,11 @@ def compute_memory(runvalues):
     4GB per core, or memory from input + 4000 MB for overhead.
     Computed to use as close as possible the memory available.
     """
-    # FIXME: recompute
-    if runvalues['memory'] is not None:
-        memory = runvalues['cores'] * 4800
-    else:
-        memory = runvalues['cores'] * 4800
+    if runvalues['memory'] is None:
+        if runvalues['cores'] <= 24:
+            memory = runvalues['cores'] * 4800
+        elif runvalues['cores'] == 28:
+            memory = 59000
 
     return memory
 

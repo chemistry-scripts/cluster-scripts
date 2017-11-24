@@ -192,13 +192,13 @@ def get_values_from_input_file(input_file, runvalues):
                 mem_line = line.split("=")[1].rstrip('\n')
                 mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
                 if mem_unit == "GB":
-                    runvalues['memory'] = int(mem_value) * 1000
+                    runvalues['gaussian_memory'] = int(mem_value) * 1000
                 elif mem_unit == "GW":
-                    runvalues['memory'] = int(mem_value) / 8 * 1000
+                    runvalues['gaussian_memory'] = int(mem_value) / 8 * 1000
                 elif mem_unit == "MB":
-                    runvalues['memory'] = int(mem_value)
+                    runvalues['gaussian_memory'] = int(mem_value)
                 elif mem_unit == "MW":
-                    runvalues['memory'] = int(mem_value) / 8
+                    runvalues['gaussian_memory'] = int(mem_value) / 8
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
             if "TITLE=" in line:
@@ -252,18 +252,26 @@ def compute_memory(runvalues):
     4GB per core, or memory from input + 4000 MB for overhead.
     Computed to use as close as possible the memory available.
     """
-    if runvalues['memory'] is not None:
+    if runvalues['gaussian_memory'] is not None:
         # Memory already defined in input file
-        gaussian_memory = runvalues['memory']
+        gaussian_memory = runvalues['gaussian_memory']
         # SLURM memory requirement is gaussian_memory + overhead, as long as
         # it fits within the general node requirements
-        if gaussian_memory + 4000 < runvalues['cores'] * 4800:
-            memory = gaussian_memory + 4000
-        else:
-            memory = runvalues['cores'] * 4800
+        if runvalues['cores'] <= 24:
+            if gaussian_memory + 4000 < runvalues['cores'] * 4800:
+                memory = gaussian_memory + 4000
+            else:
+                memory = runvalues['cores'] * 4800
+        elif runvalues['cores'] == 28:
+            memory = 59000
     else:
-        gaussian_memory = runvalues['cores'] * 4000
-        memory = runvalues['cores'] * 4800
+        # Memory not input, compute everything according to number of cores
+        if runvalues['cores'] <= 24:
+            gaussian_memory = runvalues['cores'] * 4000
+            memory = runvalues['cores'] * 4800
+        elif runvalues['cores'] == 28:
+            gaussian_memory = 50000
+            memory = 59000
 
     return (memory, gaussian_memory)
 
