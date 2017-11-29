@@ -128,5 +128,5 @@ alias complet="username vectors warning lowFreq"
 
 alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C" -u $USER'
 
-alias watchLogs='watch tail -n20 ~/scratchGaussian/*/*g'
+alias watchLogs='watch tail -n10 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out'
 alias watchQueue='watch "squeue -o '"'"'%.8i %.9P %10u %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
