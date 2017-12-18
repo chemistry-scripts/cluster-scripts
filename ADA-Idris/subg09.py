@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Submit script for Gaussian09 for Computing Clusters
-Last Update 2017-01-25 by Emmanuel Nicolas
+Submit script for Gaussian09 for Computing Clusters.
+
+Script adapted for Idris cluster Ada
+Last Update 2017-12-15 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -11,64 +13,105 @@ Requires Python3 to be installed.
 import argparse
 import sys
 import os
+import logging
 import shlex
 import re
 
 
 def main():
     """
-        Main function.
-        Checks existence of input, and non-existence of batch file (e.g.
-        computation has not already been submitted).
-        Run computation
+    Set up the computation and submit it to the job scheduler.
+
+    Precedence of parameters for submission:
+        - Command line parameters
+        - Gaussian script
+        - Default parameters
+
+    Structure of program:
+    - Define runvalues:
+        - Fill Defaults
+        - Parse file and replace appropriately
+        - Get command-line parameters and replace appropriately
+    - Compute missing values
+        - Memory
+        - Number of nodes if appropriate
+        - Cluster section
+        - Convert filenames to printable values
+    - Check parameters
+        - Existence of files (or non-existence...)
+        - Compatibility nproc/nodes/memory
+    - Build script file
+    - Submit script
     """
+    # Setup logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    stream_handler = logging.StreamHandler()
+
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+    stream_handler.setFormatter(formatter)
+
+    logger.addHandler(stream_handler)
+
+    # Setup runvalues with default settings
+    runvalues = default_run_values()
+
     # Get parameters from command line
-    runvalues = get_options()
+    cmdline_args = get_options()
+
     # Retrieve input file name, create output file name
-    input_file_name = runvalues['inputfile']
-    output = input_file_name + ".sh"
+    input_file_name = cmdline_args['inputfile']
+    script_file_name = input_file_name + ".sh"
+
     # Check existence of input file
     if not os.path.exists(input_file_name):
         print("=========== !!! WARNING !!! ===========")
         print("The input file was not found.")
         sys.exit()
     # Check that file input.sh does not exist, not to start twice the same job
-    if os.path.exists(output):
+    if os.path.exists(script_file_name):
         print("=========== !!! WARNING !!! ===========")
         print(" The corresponding .sh file already exists ")
         print("Make sure it is not a mistake, erase it and rerun the script")
         print("Alternatively, you can submit the job directly with:")
-        print("llsubmit {0}".format(shlex.quote(output)))
+        print("llsubmit {0}".format(shlex.quote(script_file_name)))
         sys.exit()
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
     os.system('dos2unix {0}'.format(shlex.quote(input_file_name)))
+
     # Get computation parameters from input file
     runvalues = get_values_from_input_file(input_file_name, runvalues)
-    # Backfill parameters not set in the runvalues
-    runvalues = get_defaultvalues(runvalues)
+
+    # Merge command-line parameters into runvalues
+    runvalues = fill_from_commandline(runvalues, cmdline_args)
+
+    # Fill with missing values and consolidate the whole thing
+    runvalues = fill_missing_values(runvalues)
+
     # Create run file for gaussian
-    create_run_file(input_file_name, output, runvalues)
+    create_run_file(script_file_name, runvalues)
     # Submit the script
-    os.system('llsubmit {0}'.format(shlex.quote(output)))
+    os.system('sbatch {0}'.format(shlex.quote(script_file_name)))
     print("job {0} submitted with a walltime of {1} hours"
-          .format(input_file_name, runvalues["walltime"]))
+          .format(input_file_name, runvalues['walltime']))
 
 
 def get_options():
-    """
-        Check command line options and accordingly set computation parameters
-    """
+    """Check command line options and accordingly set computation parameters."""
     parser = argparse.ArgumentParser(description=help_description(),
                                      epilog=help_epilog())
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.add_argument('-n', '--nproc', default=24, type=int,
-                        help="Number of cores used for the computation")
+    parser.add_argument('-p', '--proc', type=int,
+                        help="Number of processors used for the computation")
+    parser.add_argument('-n', '--nodes', type=int,
+                        help="Number of nodes used for the computation")
     parser.add_argument('-t', '--walltime', default="100:00:00", type=str,
                         help="Maximum time allowed for the computation")
     parser.add_argument('-m', '--memory', type=int,
-                        help="Amount of memory allowed for the computation")
-    parser.add_argument('inputfile', type=str, nargs='+',
+                        help="Amount of memory allowed for the computation, in MB")
+    parser.add_argument('inputfile', type=str, nargs=1,
                         help='The input file to submit')
 
     try:
@@ -77,117 +120,174 @@ def get_options():
         print(str(error))  # Print something like "option -a not recognized"
         sys.exit(2)
 
-    runvalues = dict.fromkeys(['inputfile', 'cores', 'walltime', 'memory',
-                               'chk', 'oldchk', 'rwf', 'nproc_in_input',
-                               'memory_in_input'])
     # Get values from parser
-    runvalues['inputfile'] = os.path.basename(args.inputfile[0])
-    runvalues['cores'] = args.nproc
-    runvalues['walltime'] = args.walltime
+    cmdline_args = dict.fromkeys(['inputfile', 'walltime', 'memory', 'cores', 'nodes'])
+    cmdline_args['inputfile'] = os.path.basename(args.inputfile[0])
+    cmdline_args['walltime'] = args.walltime
+    if args.proc:
+        cmdline_args['cores'] = args.proc
+    if args.nodes:
+        cmdline_args['nodes'] = args.nodes
     if args.memory:
-        runvalues['memory'] = args.memory
+        cmdline_args['memory'] = args.memory
 
-    # Initialize empty values
+    return cmdline_args
+
+
+def fill_from_commandline(runvalues, cmdline_args):
+    """Merge command line arguments into runvalues."""
+    runvalues['inputfile'] = cmdline_args['inputfile']
+    if cmdline_args['nodes']:
+        runvalues['nodes'] = cmdline_args['nodes']
+    if cmdline_args['cores']:
+        runvalues['cores'] = cmdline_args['cores']
+    if cmdline_args['walltime']:
+        runvalues['walltime'] = cmdline_args['walltime']
+    if cmdline_args['memory']:
+        runvalues['memory'] = cmdline_args['memory']
+    return runvalues
+
+
+def default_run_values():
+    """Fill default runvalues."""
+    # Setup runvalues
+    runvalues = dict.fromkeys(['inputfile', 'outputfile', 'nodes', 'cores', 'walltime', 'memory',
+                               'gaussian_memory', 'chk', 'oldchk', 'rwf', 'nproc_in_input',
+                               'memory_in_input', 'nbo', 'nbo_basefilename'])
+    runvalues['inputfile'] = ''
+    runvalues['outputfile'] = ''
+    runvalues['nodes'] = 1
+    runvalues['cores'] = 24
+    runvalues['walltime'] = '100:00:00'
+    runvalues['memory'] = 4000  # In MB
+    runvalues['gaussian_memory'] = 1000  # in MB
     runvalues['chk'] = set()
     runvalues['oldchk'] = set()
     runvalues['rwf'] = set()
+    runvalues['nproc_in_input'] = False
+    runvalues['memory_in_input'] = False
+    runvalues['nbo'] = False
+    runvalues['nbo_basefilename'] = ''
     return runvalues
 
 
 def get_values_from_input_file(input_file, runvalues):
-    """
-        Get core/memory values from input file, reading the Mem and
-        NProcShared parameters
-    """
+    """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
     with open(input_file, 'r') as file:
-        # Go through lines and test if they are containing nproc, mem related
+        # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
         for line in file.readlines():
             if "%nproc" in line.lower():
                 runvalues['nproc_in_input'] = True
-                runvalues["cores"] = int(line.split("=")[1].rstrip('\n'))
+                runvalues['cores'] = int(line.split("=")[1].rstrip('\n'))
             if "%chk" in line.lower():
-                runvalues["chk"].add(line.split("=")[1].rstrip('\n'))
+                runvalues['chk'].add(line.split("=")[1].rstrip('\n'))
             if "%oldchk" in line.lower():
-                runvalues["oldchk"].add(line.split("=")[1].rstrip('\n'))
+                runvalues['oldchk'].add(line.split("=")[1].rstrip('\n'))
             if "%rwf" in line.lower():
-                runvalues["rwf"].add(line.split("=")[1].rstrip('\n'))
+                runvalues['rwf'].add(line.split("=")[1].rstrip('\n'))
             if "%mem" in line.lower():
                 runvalues['memory_in_input'] = True
                 mem_line = line.split("=")[1].rstrip('\n')
-                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)',
-                                               mem_line).groups()
+                mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
                 if mem_unit == "GB":
-                    runvalues["memory"] = int(mem_value) * 1000
+                    runvalues['gaussian_memory'] = int(mem_value) * 1000
                 elif mem_unit == "GW":
-                    runvalues["memory"] = int(mem_value) / 8 * 1000
+                    runvalues['gaussian_memory'] = int(mem_value) / 8 * 1000
                 elif mem_unit == "MB":
-                    runvalues["memory"] = int(mem_value)
+                    runvalues['gaussian_memory'] = int(mem_value)
                 elif mem_unit == "MW":
-                    runvalues["memory"] = int(mem_value) / 8
+                    runvalues['gaussian_memory'] = int(mem_value) / 8
+            if "nbo6" in line.lower() or "npa6" in line.lower():
+                runvalues['nbo'] = True
+            if "TITLE=" in line:
+                # TITLE=FILENAME
+                runvalues['nbo_basefilename'] = line.split('=')[1]
+
     return runvalues
 
 
-def get_defaultvalues(runvalues):
-    """
-        Fill the runvalues table with the default values in case they are not
-        existing already.
-    """
-    if runvalues['memory'] is None:
-        if runvalues['cores'] == 24:  # Single node, allow 64GB nodes
-            runvalues['memory'] = 58000
-        else:  # Shared nodes
-            runvalues['memory'] = 5000 * runvalues['cores']
+def fill_missing_values(runvalues):
+    """Compute and fill all missing values."""
+    # TODO Adapt to Ada
+    if runvalues['cores'] > 999 and runvalues['nodes'] == 1:
+        raise ValueError("Number of cores cannot exceed 28 for one node.")
+    elif runvalues['nodes'] > 1:
+        raise ValueError("Multiple nodes not supported at the moment.")
+
+    # TODO: manage the multiple nodes case
+
+    # TODO; Better memory checks
+    memory, gaussian_memory = compute_memory(runvalues)
+    runvalues['memory'] = memory
+    runvalues['gaussian_memory'] = gaussian_memory
+
     return runvalues
 
 
-def create_shlexnames(input_file, runvalues):
-    """
-        Return dictionary containing shell escaped names for all possible files
-    """
+def create_shlexnames(runvalues):
+    """Return dictionary containing shell escaped names for all possible files."""
     shlexnames = dict()
-    input_basename = os.path.splitext(input_file)[0]
-    shlexnames['inputname'] = shlex.quote(input_file)
+    input_basename = os.path.splitext(runvalues['inputfile'])[0]
+    shlexnames['inputfile'] = shlex.quote(runvalues['inputfile'])
     shlexnames['basename'] = shlex.quote(input_basename)
     if runvalues['chk'] is not None:
         shlexnames['chk'] = [shlex.quote(chk) for chk in runvalues['chk']]
     if runvalues['oldchk'] is not None:
-        shlexnames['oldchk'] = [shlex.quote(oldchk) for oldchk in
-                                runvalues['oldchk']]
+        shlexnames['oldchk'] = [shlex.quote(oldchk) for oldchk in runvalues['oldchk']]
     if runvalues['rwf'] is not None:
         shlexnames['rwf'] = [shlex.quote(rwf) for rwf in runvalues['rwf']]
     return shlexnames
 
 
-def create_run_file(input_file, output, runvalues):
+def compute_memory(runvalues):
     """
-        Create .sh file that contains the script to actually run on the server.
-        Structure:
-        -- SBATCH instructions for the queue manager
-        -- setup of Gaussian09 on the nodes
-        -- creation of scratch, copy necessary files
-        -- Run Gaussian09
-        -- Copy appropriate files back to $HOME
-        -- Cleanup scratch
+    Return ideal memory value for Ada.
 
-        Instructions adapted from www.cines.fr
+    2.5GB per core - 1 GB (overhead) in Gaussian, available: 3.5GB per core.
+    Computed to use as much as possible the memory available.
     """
-
-    # Compute memory required:
-    # max of 3.5GB per core (default), minus 1GB per core (eq to 2.5*ncores-1),
-    # or memory from input + 2GB for overhead.
-    if runvalues['memory'] is not None:
-        if runvalues['memory'] == runvalues['cores'] * 7000:
-            memory = runvalues['cores'] * 7000
+    if runvalues['gaussian_memory'] is not None:
+        # Memory already defined in input file
+        gaussian_memory = runvalues['gaussian_memory']
+        # LoadLeveler memory requirement is gaussian_memory + overhead, as long as
+        # it fits within the general node requirements
+        if gaussian_memory + runvalues['cores'] * 1000 + 1000 < runvalues['cores'] * 3500:
+            memory = gaussian_memory + runvalues['cores'] * 1000 + 1000
         else:
-            memory = max(runvalues['cores'] * 2.5 - 1,
-                         runvalues['memory'] + 2000)
+            memory = runvalues['cores'] * 3500
+
     else:
-        memory = runvalues['cores'] * 5000
+        # Memory not in input, compute everything according to number of cores
+        gaussian_memory = runvalues['cores'] * 2500 - 1000
+        memory = runvalues['cores'] * 3500
+
+    return (memory, gaussian_memory)
+
+
+def create_run_file(output, runvalues):
+    """
+    Create .sh file that contains the script to actually run on the server.
+
+    Structure:
+        - SBATCH instructions for the queue manager
+        - setup of Gaussian09 on the nodes
+        - creation of scratch, copy necessary files
+        - Run Gaussian09
+        - Copy appropriate files back to $HOME
+        - Cleanup scratch
+
+    Instructions adapted from www.cines.fr
+    """
+    # Setup logging
+    logger = logging.getLogger()
 
     # Setup names to use in file
-    shlexnames = create_shlexnames(input_file, runvalues)
+    shlexnames = create_shlexnames(runvalues)
+    logger.debug("Runvalues:  %s", runvalues)
+    logger.debug("Shlexnames: %s", shlexnames)
 
+    # TODO: multi-nodes
     out = ['#!/bin/bash\n',
            '# @ job_name         = ' + shlexnames['inputname'] + '\n',
            '# @ output           = ' + shlexnames['basename'] + '.llout\n',
@@ -205,15 +305,21 @@ def create_run_file(input_file, output, runvalues):
                 '\n',
                 '# Setup Gaussian specific variables\n',
                 'export g09root\n',
+                'source $g09root/g09/bsd/g09.profile\n',
                 '\n'])
+    if runvalues['nbo']:
+        out.extend(['# Setup NBO6\n',
+                    'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
+                    'export PATH=$PATH:$NBOBIN\n',
+                    '\n'])
     out.extend(['# Setup Scratch\n',
                 'export GAUSS_SCRDIR=$TMPDIR\n',
                 'mkdir -p $GAUSS_SCRDIR\n',
                 '\n',
                 '# Copy input file\n',
-                'cp -f ' + shlexnames['inputname'] + ' $GAUSS_SCRDIR\n\n'])
+                'cp -f ' + shlexnames['inputfile'] + ' $GAUSS_SCRDIR\n\n'])
     # If chk file is defined in input and exists, copy it in scratch
-    if runvalues['chk'] is not None:
+    if runvalues['chk'] != set():
         out.extend('# Copy chk file in scratch if it exists\n')
         for chk in shlexnames['chk']:
             out.extend(['if [ -f ' + chk + ' ] \n',
@@ -221,7 +327,7 @@ def create_run_file(input_file, output, runvalues):
                         '  cp ' + chk + ' $GAUSS_SCRDIR\n',
                         'fi\n\n'])
     # If oldchk file is defined in input and exists, copy it in scratch
-    if runvalues['oldchk'] is not None:
+    if runvalues['oldchk'] != set():
         out.extend('# Copy oldchk file in scratch if it exists\n')
         for oldchk in shlexnames['oldchk']:
             out.extend(['if [ -f ' + oldchk + ' ] \n',
@@ -229,7 +335,7 @@ def create_run_file(input_file, output, runvalues):
                         '  cp ' + oldchk + ' $GAUSS_SCRDIR\n',
                         'fi\n\n'])
     # If rwf file is defined in input and exists, copy it in scratch
-    if runvalues['rwf'] is not None:
+    if runvalues['rwf'] != set():
         out.extend('# Copy rwf file in scratch if it exists\n')
         for rwf in shlexnames['rwf']:
             out.extend(['if [ -f ' + rwf + ' ] \n',
@@ -241,20 +347,18 @@ def create_run_file(input_file, output, runvalues):
                 '# Print job info in output file\n',
                 'echo "job_id : $LOADL_STEP_ID"\n',
                 'echo "job_name : $LOADL_JOB_NAME"\n',
-                'echo "node_number : $ nodes"\n',
+                'echo "node_number : $LOADL_JOB_NODELIST nodes"\n',
                 'echo "core number : $LOADL_TOTAL_TASKS cores"\n',
                 '\n'])
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
     out.extend(['# Start Gaussian\n',
                 '( '])
-    if runvalues['nproc_in_input'] is None:  # nproc line not in input
+    if not runvalues['nproc_in_input']:  # nproc line not in input
         out.extend('echo %NProcShared=' + str(runvalues['cores']) + '; ')
-    if runvalues['memory_in_input'] is None:  # memory line not in input
-        # Use memory minus 1GB per core to account for Gaussian overhead
-        gaussian_memory = memory - min(6000, 1000 * runvalues['cores'])
-        out.extend('echo %Mem=' + str(gaussian_memory) + 'MB ; ')
-    out.extend(['cat ' + shlex.quote(input_file) + ' ) | ',
+    if not runvalues['memory_in_input']:  # memory line not in input
+        out.extend('echo %Mem=' + str(runvalues['gaussian_memory']) + 'MB ; ')
+    out.extend(['cat ' + shlexnames['inputfile'] + ' ) | ',
                 'timeout ' + str(runtime) + ' g09 > ',
                 '$LOADL_STEP_INITDIR/' + shlexnames['basename'] + '.log\n',
                 '\n'])
@@ -269,8 +373,12 @@ def create_run_file(input_file, output, runvalues):
                 'for f in $GAUSS_SCRDIR/*chk; do\n',
                 '    [ -f "$f" ] && cp $f $LOADL_STEP_INITDIR\n',
                 'done\n',
-                '\n',
                 '\n'])
+    if runvalues['nbo']:
+        out.extend(['# Retrieve NBO Files\n',
+                    'cp ' + runvalues['nbo_basefilename'] + '.*'
+                    ' $LOADL_STEP_INITDIR\n'
+                    '\n'])
     out.extend(['# If Gaussian crashed or was stopped somehow, copy the rwf\n',
                 'for f in $GAUSS_SCRDIR/*rwf; do\n',
                 '    mkdir -p $HOME/rwf\n'
@@ -291,23 +399,19 @@ def create_run_file(input_file, output, runvalues):
 
 
 def help_description():
-    """
-        Returns description of program for help message
-    """
+    """Return description of program for help message."""
     return """
-Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
+Setup and submit a job to the LoadLeveler queueing system on the Ada cluster.
 The jobscript name should end with .gjf or .com.
 """
 
 
 def help_epilog():
-    """
-        Returns additionnal help message
-    """
+    """Return additionnal help message."""
     return """
 Defaults values:
-  Default memory:          64 GB
-  Default cores:           24
+  Default memory:          1 GB
+  Default cores:           1
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
