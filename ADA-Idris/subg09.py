@@ -93,7 +93,7 @@ def main():
     # Create run file for gaussian
     create_run_file(script_file_name, runvalues)
     # Submit the script
-    os.system('sbatch {0}'.format(shlex.quote(script_file_name)))
+    os.system('llsubmit {0}'.format(shlex.quote(script_file_name)))
     print("job {0} submitted with a walltime of {1} hours"
           .format(input_file_name, runvalues['walltime']))
 
@@ -270,7 +270,7 @@ def create_run_file(output, runvalues):
     Create .sh file that contains the script to actually run on the server.
 
     Structure:
-        - SBATCH instructions for the queue manager
+        - LoadLeveler instructions for the queue manager
         - setup of Gaussian09 on the nodes
         - creation of scratch, copy necessary files
         - Run Gaussian09
@@ -289,7 +289,7 @@ def create_run_file(output, runvalues):
 
     # TODO: multi-nodes
     out = ['#!/bin/bash\n',
-           '# @ job_name         = ' + shlexnames['inputname'] + '\n',
+           '# @ job_name         = ' + shlexnames['inputfile'] + '\n',
            '# @ output           = ' + shlexnames['basename'] + '.llout\n',
            '# @ error            = ' + shlexnames['basename'] + '.llerr\n',
            '# @ notification     = always\n',
