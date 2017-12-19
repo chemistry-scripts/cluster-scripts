@@ -156,7 +156,7 @@ def default_run_values():
     runvalues['outputfile'] = ''
     runvalues['nodes'] = 1
     runvalues['cores'] = 24
-    runvalues['walltime'] = '24:00:00'
+    runvalues['walltime'] = '100:00:00'
     runvalues['memory'] = 4000  # In MB
     runvalues['dependencies'] = list()
     return runvalues
@@ -252,7 +252,7 @@ def create_run_file(output, runvalues):
     out.extend(['# Load ADF Module\n',
                 'module purge\n',
                 'module load intel/18.0\n',
-                'module load adf/2016.102-openmpi\n',
+                'module load adf/2017.106\n',
                 '\n'])
     out.extend(['# Setup Scratch\n',
                 'export SCM_TMPDIR=$TMPDIR\n',
@@ -325,9 +325,9 @@ def help_epilog():
     """Return additionnal help message."""
     return """
 Defaults values:
-  Default memory:          1 GB
-  Default cores:           1
-  Default walltime:        24:00:00
+  Default memory:          84 GB
+  Default cores:           24
+  Default walltime:        100:00:00
 
 Values for number of cores used and memory to use are read in the input file,
 but are overridden if command line arguments are provided.
