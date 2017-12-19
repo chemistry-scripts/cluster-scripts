@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Submit script for Gaussian09 for Computing Clusters.
+Submit script for ADF for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
 Last Update 2017-10-30 by Emmanuel Nicolas
