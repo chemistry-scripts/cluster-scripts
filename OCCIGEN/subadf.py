@@ -172,11 +172,11 @@ def get_values_from_input_file(input_file, runvalues):
         # directives.
         for line in file.readlines():
             if "dependency:" in line.lower():
-                # line: # dependency: /path/to/file.t21 file.t21
+                # line: # dependency: /path/to/file file.t21
                 dep_line = line.split("dependency:")[1]
                 dep_line = dep_line.split()
                 # Save full path in runvalues
-                runvalues['dependencies'].append(dep_line[0])
+                runvalues['dependencies'].append(dep_line[0] + "/" + dep_line[1])
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
             if "TITLE=" in line:
