@@ -5,7 +5,7 @@
 Submit script for Gaussian09 for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2017-10-30 by Emmanuel Nicolas
+Last Update 2018-05-12 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -191,13 +191,13 @@ def get_values_from_input_file(input_file, runvalues):
                 runvalues['memory_in_input'] = True
                 mem_line = line.split("=")[1].rstrip('\n')
                 mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
-                if mem_unit == "GB":
+                if mem_unit.upper() == "GB":
                     runvalues['gaussian_memory'] = int(mem_value) * 1000
-                elif mem_unit == "GW":
+                elif mem_unit.upper() == "GW":
                     runvalues['gaussian_memory'] = int(mem_value) / 8 * 1000
-                elif mem_unit == "MB":
+                elif mem_unit.upper() == "MB":
                     runvalues['gaussian_memory'] = int(mem_value)
-                elif mem_unit == "MW":
+                elif mem_unit.upper() == "MW":
                     runvalues['gaussian_memory'] = int(mem_value) / 8
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
