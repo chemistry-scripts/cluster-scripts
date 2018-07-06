@@ -192,9 +192,9 @@ def get_values_from_input_file(input_file, runvalues):
                 mem_line = line.split("=")[1].rstrip('\n')
                 mem_value, mem_unit = re.match(r'(\d+)([a-zA-Z]+)', mem_line).groups()
                 if mem_unit.upper() == "GB":
-                    runvalues['gaussian_memory'] = int(mem_value) * 1000
+                    runvalues['gaussian_memory'] = int(mem_value) * 1024
                 elif mem_unit.upper() == "GW":
-                    runvalues['gaussian_memory'] = int(mem_value) / 8 * 1000
+                    runvalues['gaussian_memory'] = int(mem_value) * 1024 / 8
                 elif mem_unit.upper() == "MB":
                     runvalues['gaussian_memory'] = int(mem_value)
                 elif mem_unit.upper() == "MW":
