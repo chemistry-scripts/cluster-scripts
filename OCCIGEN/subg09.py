@@ -157,7 +157,7 @@ def default_run_values():
     runvalues['inputfile'] = ''
     runvalues['outputfile'] = ''
     runvalues['nodes'] = 1
-    runvalues['cores'] = 24
+    runvalues['cores'] = ''
     runvalues['walltime'] = '24:00:00'
     runvalues['memory'] = 4000  # In MB
     runvalues['gaussian_memory'] = 1000  # in MB
@@ -212,7 +212,9 @@ def get_values_from_input_file(input_file, runvalues):
 def fill_missing_values(runvalues):
     """Compute and fill all missing values."""
     # Setup cluster_section according to number of cores
-    if runvalues['cores'] <= 24:
+    if not runvalues['nproc_in_input']:
+        runvalues['cluster_section'] = "HSW24|BDW28"
+    elif runvalues['cores'] <= 24:
         runvalues['cluster_section'] = "HSW24"
     elif runvalues['cores'] <= 28:
         runvalues['cluster_section'] = "BDW28"
@@ -258,7 +260,10 @@ def compute_memory(runvalues):
         gaussian_memory = runvalues['gaussian_memory']
         # SLURM memory requirement is gaussian_memory + overhead, as long as
         # it fits within the general node requirements
-        if runvalues['cores'] <= 24:
+        if not runvalues['nproc_in_input']:
+            # Max compatible for all partitions
+            memory = 59000
+        elif runvalues['cores'] <= 24:
             if gaussian_memory + 4000 < runvalues['cores'] * 4800:
                 memory = gaussian_memory + 4000
             else:
@@ -267,7 +272,10 @@ def compute_memory(runvalues):
             memory = 59000
     else:
         # Memory not input, compute everything according to number of cores
-        if runvalues['cores'] <= 24:
+        if not runvalues['nproc_in_input']:
+            gaussian_memory = 49000
+            memory = 59000
+        elif runvalues['cores'] <= 24:
             gaussian_memory = runvalues['cores'] * 4000
             memory = runvalues['cores'] * 4800
         elif runvalues['cores'] == 28:
@@ -310,21 +318,27 @@ def create_run_file(output, runvalues):
            '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
-           '#SBATCH --nodes=1\n',
-           '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
-           '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
-           '#SBATCH --time=' + runvalues['walltime'] + '\n',
-           '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
-           '\n']
+           '#SBATCH --nodes=1\n']
+    if runvalues['nproc_in_input']:
+        out.extend(['#SBATCH --ntasks=' + str(runvalues['cores']) + '\n'])
+    out.extend(['#SBATCH --mem=' + str(runvalues['memory']) + '\n',
+                '#SBATCH --time=' + runvalues['walltime'] + '\n',
+                '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
+                '\n'])
+    if not runvalues['nproc_in_input']:  # nproc line not in input
+        out.extend(['# Compute actual cpu number\n',
+                    "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n"])
     out.extend(['# Load Gaussian Module\n',
                 'module purge\n',
                 'module load gaussian\n',
                 '\n',
                 '# Setup Gaussian specific variables\n',
                 'export g09root\n',
-                'source $g09root/g09/bsd/g09.profile\n',
-                'export OMP_NUM_THREADS=$SLURM_NTASKS\n',
-                '\n'])
+                'source $g09root/g09/bsd/g09.profile\n'])
+    if runvalues['nproc_in_input']:
+        out.extend(['export OMP_NUM_THREADS=$SLURM_NTASKS\n','\n'])
+    else:
+        out.extend(['export OMP_NUM_THREADS=$NCPU\n','\n'])
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
                     'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
@@ -374,7 +388,7 @@ def create_run_file(output, runvalues):
     out.extend(['# Start Gaussian\n',
                 '( '])
     if not runvalues['nproc_in_input']:  # nproc line not in input
-        out.extend('echo %NProcShared=' + str(runvalues['cores']) + '; ')
+        out.extend('echo %NProcShared=${NCPU}; ')
     if not runvalues['memory_in_input']:  # memory line not in input
         out.extend('echo %Mem=' + str(runvalues['gaussian_memory']) + 'MB ; ')
     out.extend(['cat ' + shlexnames['inputfile'] + ' ) | ',
