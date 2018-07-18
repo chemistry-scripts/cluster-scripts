@@ -203,7 +203,7 @@ def get_values_from_input_file(input_file, runvalues):
                 runvalues['nbo'] = True
             if "TITLE=" in line:
                 # TITLE=FILENAME
-                # TODO: remove potential line break at tend of filename
+                # TODO: remove potential line break at end of filename
                 runvalues['nbo_basefilename'] = line.split('=')[1]
 
     return runvalues
@@ -255,6 +255,9 @@ def compute_memory(runvalues):
     4GB per core, or memory from input + 4000 MB for overhead.
     Computed to use as close as possible the memory available.
     """
+    memory = 0
+    gaussian_memory = 0
+
     if runvalues['gaussian_memory'] is not None:
         # Memory already defined in input file
         gaussian_memory = runvalues['gaussian_memory']
@@ -282,7 +285,7 @@ def compute_memory(runvalues):
             gaussian_memory = 50000
             memory = 59000
 
-    return (memory, gaussian_memory)
+    return memory, gaussian_memory
 
 
 def create_run_file(output, runvalues):
