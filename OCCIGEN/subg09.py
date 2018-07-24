@@ -203,8 +203,7 @@ def get_values_from_input_file(input_file, runvalues):
                 runvalues['nbo'] = True
             if "TITLE=" in line:
                 # TITLE=FILENAME
-                # TODO: remove potential line break at end of filename
-                runvalues['nbo_basefilename'] = line.split('=')[1]
+                runvalues['nbo_basefilename'] = line.split('=')[1].rstrip(' \n')
 
     return runvalues
 
