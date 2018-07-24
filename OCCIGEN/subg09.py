@@ -224,10 +224,16 @@ def fill_missing_values(runvalues):
 
     # TODO: manage the multiple nodes case
 
-    # TODO; Better memory checks
     memory, gaussian_memory = compute_memory(runvalues)
     runvalues['memory'] = memory
     runvalues['gaussian_memory'] = gaussian_memory
+
+    if memory - gaussian_memory < 4096:
+        # Too little overhead
+        raise ValueError("Too much memory required for Gaussian to run properly")
+    if gaussian_memory > 118000:
+        # Too much memory
+        raise ValueError("Exceeded max allowed memory")
 
     return runvalues
 
@@ -257,31 +263,54 @@ def compute_memory(runvalues):
     memory = 0
     gaussian_memory = 0
 
-    if runvalues['gaussian_memory'] is not None:
-        # Memory already defined in input file
+    if runvalues['memory_in_input']:
+        # Memory defined in input file
         gaussian_memory = runvalues['gaussian_memory']
-        # SLURM memory requirement is gaussian_memory + overhead, as long as
-        # it fits within the general node requirements
-        if not runvalues['nproc_in_input']:
-            # Max compatible for all partitions
-            memory = 59000
-        elif runvalues['cores'] <= 24:
-            if gaussian_memory + 4000 < runvalues['cores'] * 4800:
-                memory = gaussian_memory + 4000
+
+        # Now switch according to nproc value
+        if runvalues['nproc_in_input']:
+            if 24 < runvalues['cores'] <= 28:
+                # Broadwell partition
+                memory = 59000
+            elif runvalues['cores'] == 24:
+                # Haswell, but full partition
+                if gaussian_memory < 53000:
+                    # Allow run on 64GB nodes
+                    memory = 59000
+                else:
+                    # Force 128GB nodes
+                    memory = 118000
+            elif runvalues['cores'] < 24:
+                # We are on shared nodes
+                # Choose max from 4830 MB per core, or defined memory + 4GB overhead
+                memory = max(runvalues['cores'] * 4830, gaussian_memory + 4096)
+        else:
+            # nproc undefined, assume single node and choose simply between 64GB and 128GB nodes
+            if gaussian_memory < 53000:
+                # Allow run on 64GB nodes
+                memory = 59000
             else:
-                memory = runvalues['cores'] * 4800
-        elif runvalues['cores'] == 28:
-            memory = 59000
+                # Force 128GB nodes
+                memory = 118000
     else:
         # Memory not input, compute everything according to number of cores
-        if not runvalues['nproc_in_input']:
-            gaussian_memory = 49000
-            memory = 59000
-        elif runvalues['cores'] <= 24:
-            gaussian_memory = runvalues['cores'] * 4000
-            memory = runvalues['cores'] * 4800
-        elif runvalues['cores'] == 28:
-            gaussian_memory = 50000
+        if runvalues['nproc_in_input']:
+            if 24 < runvalues['cores'] <= 28:
+                # Broadwell partition
+                gaussian_memory = 53000
+                memory = 59000
+            elif runvalues['cores'] == 24:
+                # Haswell, partition, allow 64GB
+                gaussian_memory = 53000
+                memory = 59000
+            elif runvalues['cores'] < 24:
+                # Shared nodes
+                # 4830 MB per core, remove 4GB overhead for Gaussian
+                memory = runvalues['cores'] * 4830
+                gaussian_memory = memory - 4096
+        else:
+            # nproc undefined, assume single 64GB node
+            gaussian_memory = 53000
             memory = 59000
 
     return memory, gaussian_memory
