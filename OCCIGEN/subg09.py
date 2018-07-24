@@ -5,7 +5,7 @@
 Submit script for Gaussian09 for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2018-05-12 by Emmanuel Nicolas
+Last Update 2018-07-24 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -466,22 +466,22 @@ def help_description():
     """Return description of program for help message."""
     return """
 Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
-The jobscript name should end with .gjf or .com.
+The job script name should end with .gjf or .com.
 """
 
 
 def help_epilog():
-    """Return additionnal help message."""
+    """Return additional help message."""
     return """
 Defaults values:
-  Default memory:          1 GB
-  Default cores:           1
+  Default memory:          54GB
+  Default cores:           24
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
 but are overridden if command line arguments are provided.
 
-When using shared nodes (less than 24 cores), the default memory is 5GB per
+When using shared nodes (less than 24 cores), the default memory is 4GB per
 core.
 
 To copy in bashrc:
