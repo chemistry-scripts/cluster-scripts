@@ -216,8 +216,8 @@ def get_values_from_input_file(input_file, runvalues):
 def fill_missing_values(runvalues):
     """Compute and fill all missing values."""
     # TODO Adapt to Ada
-    if runvalues['cores'] > 999 and runvalues['nodes'] == 1:
-        raise ValueError("Number of cores cannot exceed 28 for one node.")
+    if runvalues['cores'] > 32 and runvalues['nodes'] == 1:
+        raise ValueError("Number of cores cannot exceed 32 for one node.")
     elif runvalues['nodes'] > 1:
         raise ValueError("Multiple nodes not supported at the moment.")
 
