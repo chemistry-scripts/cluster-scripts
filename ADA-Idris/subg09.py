@@ -313,6 +313,7 @@ def create_run_file(output, runvalues):
                 'export g09root\n',
                 'source $g09root/g09/bsd/g09.profile\n',
                 '\n'])
+
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
                     'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
@@ -388,8 +389,8 @@ def create_run_file(output, runvalues):
     out.extend(['# If Gaussian crashed or was stopped somehow, copy the rwf\n',
                 'for f in $GAUSS_SCRDIR/*rwf; do\n',
                 '    mkdir -p $HOME/rwf\n'
-                # Copy rwf as JobName_123456.rwf
-                '    [ -f "$f" ] && cp $f $HOME/rwf/' +
+                # Move rwf as JobName_123456.rwf
+                '    [ -f "$f" ] && mv $f $HOME/rwf/' +
                 shlexnames['basename'] + '_$LOADL_STEP_ID.rwf\n',
                 'done\n',
                 '\n',
@@ -413,7 +414,7 @@ The jobscript name should end with .gjf or .com.
 
 
 def help_epilog():
-    """Return additionnal help message."""
+    """Return additional help message."""
     return """
 Defaults values:
   Default memory:          1 GB
