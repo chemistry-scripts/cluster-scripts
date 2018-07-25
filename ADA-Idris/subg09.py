@@ -5,7 +5,7 @@
 Submit script for Gaussian09 for Computing Clusters.
 
 Script adapted for Idris cluster Ada
-Last Update 2017-12-15 by Emmanuel Nicolas
+Last Update 2018-07-24 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -35,7 +35,6 @@ def main():
     - Compute missing values
         - Memory
         - Number of nodes if appropriate
-        - Cluster section
         - Convert filenames to printable values
     - Check parameters
         - Existence of files (or non-existence...)
@@ -88,7 +87,14 @@ def main():
     runvalues = fill_from_commandline(runvalues, cmdline_args)
 
     # Fill with missing values and consolidate the whole thing
-    runvalues = fill_missing_values(runvalues)
+    try:
+        runvalues = fill_missing_values(runvalues)
+    except ValueError as error:
+        print(" ------- An error occurred ------- ")
+        print(error)
+        print("Your job was not submitted")
+        print(" ------------ Exiting ------------ ")
+        sys.exit(1)
 
     # Create run file for gaussian
     create_run_file(script_file_name, runvalues)
