@@ -88,7 +88,14 @@ def main():
     runvalues = fill_from_commandline(runvalues, cmdline_args)
 
     # Fill with missing values and consolidate the whole thing
-    runvalues = fill_missing_values(runvalues)
+    try:
+        runvalues = fill_missing_values(runvalues)
+    except ValueError as error:
+        print(" ------- An error occurred ------- ")
+        print(error)
+        print("Your job was not submitted")
+        print(" ------------ Exiting ------------ ")
+        sys.exit(1)
 
     # Create run file for gaussian
     create_run_file(script_file_name, runvalues)
