@@ -374,9 +374,9 @@ def create_run_file(output, runvalues):
                 'export g09root\n',
                 'source $g09root/g09/bsd/g09.profile\n'])
     if runvalues['nproc_in_input']:
-        out.extend(['export OMP_NUM_THREADS=$SLURM_NTASKS\n','\n'])
+        out.extend(['export OMP_NUM_THREADS=$SLURM_NTASKS\n', '\n'])
     else:
-        out.extend(['export OMP_NUM_THREADS=$NCPU\n','\n'])
+        out.extend(['export OMP_NUM_THREADS=$NCPU\n', '\n'])
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
                     'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
