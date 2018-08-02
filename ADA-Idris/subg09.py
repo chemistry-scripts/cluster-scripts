@@ -16,6 +16,7 @@ import os
 import logging
 import shlex
 import re
+import math
 
 
 def main():
@@ -215,18 +216,23 @@ def get_values_from_input_file(input_file, runvalues):
 
 def fill_missing_values(runvalues):
     """Compute and fill all missing values."""
-    # TODO Adapt to Ada
-    if runvalues['cores'] > 32 and runvalues['nodes'] == 1:
-        raise ValueError("Number of cores cannot exceed 32 for one node.")
-    elif runvalues['nodes'] > 1:
-        raise ValueError("Multiple nodes not supported at the moment.")
 
-    # TODO: manage the multiple nodes case
-
-    # TODO; Better memory checks
     memory, gaussian_memory = compute_memory(runvalues)
     runvalues['memory'] = memory
     runvalues['gaussian_memory'] = gaussian_memory
+
+    # Perform checks
+    if runvalues['cores'] > 32 and runvalues['nodes'] == 1:
+        raise ValueError("Number of cores cannot exceed 32 for one node.")
+    elif runvalues['nodes'] > 1:
+        raise ValueError("You cannot use multiple nodes on Ada.")
+
+    if gaussian_memory > 79000:
+        # Too much memory
+        raise ValueError("Exceeded max allowed memory")
+    if memory < gaussian_memory:
+        # Too much memory required
+        raise ValueError("Too much memory required according to core number")
 
     return runvalues
 
@@ -253,22 +259,28 @@ def compute_memory(runvalues):
     2.5GB per core - 1 GB (overhead) in Gaussian, available: 3.5GB per core.
     Computed to use as much as possible the memory available.
     """
-    if runvalues['gaussian_memory'] is not None:
-        # Memory already defined in input file
+
+    if runvalues['memory_in_input']:
+        # Memory defined in input file, compute theoretical cpu number
         gaussian_memory = runvalues['gaussian_memory']
-        # LoadLeveler memory requirement is gaussian_memory + overhead, as long as
-        # it fits within the general node requirements
-        if gaussian_memory + runvalues['cores'] * 1000 + 1000 < runvalues['cores'] * 3500:
-            memory = gaussian_memory + runvalues['cores'] * 1000 + 1000
+        req_cpu = math.ceil((gaussian_memory + 1000) / 2500)
+
+        # Now compare req_cpu and actual core number required
+        if req_cpu <= runvalues['cores']:
+            # We are in the safe zone, so not to worry
+            memory = gaussian_memory
         else:
-            memory = runvalues['cores'] * 3500
+            # We may run into problems here, we are asking for more memory than available per core
+            # Put the theoretical memory that should have been put.
+            memory = 2500 * req_cpu - 1000
 
     else:
-        # Memory not in input, compute everything according to number of cores
-        gaussian_memory = runvalues['cores'] * 2500 - 1000
-        memory = runvalues['cores'] * 3500
+        # Memory not in input, compute everything according to number of cores,
+        # either defined in input or default value set previously
+        memory = 2500 * runvalues['cores'] - 1000
+        gaussian_memory = memory
 
-    return (memory, gaussian_memory)
+    return memory, gaussian_memory
 
 
 def create_run_file(output, runvalues):
@@ -430,7 +442,7 @@ core.
 To copy in bashrc:
   ##### Gaussian 2009
   # Load the gaussian module which will set the variable g09root.
-  module load gaussian
+  module load gaussian/g09_D01
   # Source the g09 setup file
   source $g09root/g09/bsd/g09.profile
 """
