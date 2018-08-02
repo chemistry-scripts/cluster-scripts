@@ -7,12 +7,3 @@ fi
 
 # Setup path
 export PATH=$PATH:$HOME/.local/bin
-
-# Gaussian
-module load gaussian/g09_D01
-
-# ADF2016
-module load adf/2016.101
-
-# Python
-module load python/3.5.2

@@ -11,6 +11,18 @@ if [ -f ~/.bashrc ]; then
 fi
 
 #===============================================================
+# ==== Load Modules
+
+# Gaussian
+module load gaussian/g09_D01
+
+# ADF2016
+module load adf/2017.106
+
+# Python
+module load python/3.6.1
+
+#===============================================================
 # Define some colors first:
 red='\e[0;31m'
 RED='\e[1;31m'
