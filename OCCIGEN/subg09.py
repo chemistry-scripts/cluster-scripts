@@ -5,7 +5,7 @@
 Submit script for Gaussian09 for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2018-07-24 by Emmanuel Nicolas
+Last Update 2018-09-26 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -490,13 +490,6 @@ but are overridden if command line arguments are provided.
 
 When using shared nodes (less than 24 cores), the default memory is 4GB per
 core.
-
-To copy in bashrc:
-  ##### Gaussian 2009
-  # Load the gaussian module which will set the variable g09root.
-  module load gaussian/g09
-  # Source the g09 setup file
-  source $g09root/g09/bsd/g09.profile
 """
 
 
