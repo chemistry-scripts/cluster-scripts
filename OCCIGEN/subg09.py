@@ -208,7 +208,7 @@ def get_values_from_input_file(input_file, runvalues):
                     runvalues['gaussian_memory'] = int(mem_value) / 8
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
-            if "TITLE=" in line:
+            if "FILE=" in line:
                 # TITLE=FILENAME
                 runvalues['nbo_basefilename'] = line.split('=')[1].rstrip(' \n')
 
