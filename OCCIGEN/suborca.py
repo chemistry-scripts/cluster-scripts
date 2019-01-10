@@ -5,9 +5,9 @@
 Submit script for Orca for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2017-10-30 by Emmanuel Nicolas
+Last Update 2019-01-10 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
-Requires Python3 to be installed and accessible.
+Requires Python3 to be installed and accessible
 """
 
 import argparse
@@ -23,7 +23,7 @@ def main():
 
     Precedence of parameters for submission:
         - Command line parameters
-        - ORCA script
+        - Orca script
         - Default parameters
 
     Structure of program:
@@ -44,7 +44,7 @@ def main():
     """
     # Setup logging
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     stream_handler = logging.StreamHandler()
 
@@ -87,9 +87,16 @@ def main():
     runvalues = fill_from_commandline(runvalues, cmdline_args)
 
     # Fill with missing values and consolidate the whole thing
-    runvalues = fill_missing_values(runvalues)
+    try:
+        runvalues = fill_missing_values(runvalues)
+    except ValueError as error:
+        print(" ------- An error occurred ------- ")
+        print(error)
+        print("Your job was not submitted")
+        print(" ------------ Exiting ------------ ")
+        sys.exit(1)
 
-    # Create run file for ORCA
+    # Create run file for gaussian
     create_run_file(script_file_name, runvalues)
     # Submit the script
     os.system('sbatch {0}'.format(shlex.quote(script_file_name)))
@@ -177,9 +184,9 @@ def get_values_from_input_file(input_file, runvalues):
                 runvalues['cores'] = int(proc_line[1])
             if "nbo6" in line.lower() or "npa6" in line.lower():
                 runvalues['nbo'] = True
-            if "TITLE=" in line:
-                # TITLE=FILENAME
-                runvalues['nbo_basefilename'] = line.split('=')[1]
+            if "FILE=" in line:
+                # FILE=FILENAME
+                runvalues['nbo_basefilename'] = line.split('=')[1].rstrip(' \n')
 
     return runvalues
 
@@ -187,7 +194,9 @@ def get_values_from_input_file(input_file, runvalues):
 def fill_missing_values(runvalues):
     """Compute and fill all missing values."""
     # Setup cluster_section according to number of cores
-    if runvalues['cores'] <= 24:
+    if not runvalues['nproc_in_input']:
+        runvalues['cluster_section'] = "HSW24|BDW28"
+    elif runvalues['cores'] <= 24:
         runvalues['cluster_section'] = "HSW24"
     elif runvalues['cores'] <= 28:
         runvalues['cluster_section'] = "BDW28"
@@ -199,8 +208,7 @@ def fill_missing_values(runvalues):
     # TODO: manage the multiple nodes case
 
     # TODO; Better memory checks
-    memory = compute_memory(runvalues)
-    runvalues['memory'] = memory
+    runvalues['memory'] = compute_memory(runvalues)
 
     return runvalues
 
@@ -221,11 +229,15 @@ def compute_memory(runvalues):
     4GB per core, or memory from input + 4000 MB for overhead.
     Computed to use as close as possible the memory available.
     """
+    memory = 0
+
     if runvalues['memory'] is None:
         if runvalues['cores'] <= 24:
             memory = runvalues['cores'] * 4800
         elif runvalues['cores'] == 28:
             memory = 59000
+    else:
+        memory = 59000
 
     return memory
 
@@ -235,22 +247,18 @@ def create_run_file(output, runvalues):
     Create .sh file that contains the script to actually run on the server.
 
     Structure:
-    -- SBATCH instructions for the queue manager
-    -- setup of ORCA on the nodes
-    -- creation of scratch, copy necessary files
-    -- Run ORCA
-    -- Copy and rename appropriate files back to $HOME
-    -- Cleanup scratch
+        - SBATCH instructions for the queue manager
+        - setup of Orca on the nodes
+        - creation of scratch, copy necessary files
+        - Run Orca
+        - Copy appropriate files back to $HOME
+        - Cleanup scratch
 
     Instructions adapted from www.cines.fr
     """
     # Setup logging
     logger = logging.getLogger()
 
-    # FROM OCCIGEN Reference:
-    # =====> export OMP_NUM_THREADS=24
-    # =====> export KMP_AFFINITY=compact,1,0
-    # =====> Start ORCA with full path
     # Setup names to use in file
     shlexnames = create_shlexnames(runvalues)
     logger.debug("Runvalues:  %s", runvalues)
@@ -267,32 +275,51 @@ def create_run_file(output, runvalues):
            '#SBATCH --constraint=' + runvalues['cluster_section'] + '\n'
            '#SBATCH --mail-type=ALL\n',
            '#SBATCH --mail-user=user@server.org\n',
-           '#SBATCH --nodes=' + str(runvalues['nodes']) + '\n',
-           '#SBATCH --ntasks=' + str(runvalues['cores']) + '\n',
-           '#SBATCH --mem=' + str(runvalues['memory']) + '\n',
-           '#SBATCH --time=' + runvalues['walltime'] + '\n',
-           '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
-           '\n']
+           '#SBATCH --nodes=' + str(runvalues['nodes']) + '\n']
+    if runvalues['nproc_in_input']:
+        out.extend(['#SBATCH --ntasks=' + str(runvalues['cores']) + '\n'])
+    out.extend(['#SBATCH --mem=' + str(runvalues['memory']) + '\n',
+                '#SBATCH --time=' + runvalues['walltime'] + '\n',
+                '#SBATCH --output=' + shlexnames['basename'] + '.slurmout\n',
+                '\n'])
+
     out.extend(['# Load modules necessary for ORCA\n',
                 'module purge\n',
                 'module load intel/18.0\n',
                 'module load openmpi/intel/2.0.2\n',
                 '\n'])
+
+    # OCCIGEN stuff
+    if runvalues['nproc_in_input']:
+        out.extend(['export OMP_NUM_THREADS=$SLURM_NTASKS\n', '\n'])
+    else:
+        out.extend(["# Compute actual cpu number\n",
+                    "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n",
+                    "export OMP_NUM_THREADS=$NCPU\n",
+                    '\n'])
+    out.extend(['export KMP_AFFINITY=compact,1,0\n', '\n'])
+
+    # Setup NBO if necessary
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
                     'export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n',
                     'export PATH=$PATH:$NBOBIN\n',
                     '\n'])
+
+    # Setup Orca
     out.extend(['# Setup Scratch\n',
                 'export ORCA_TMPDIR=$SCRATCHDIR/orca/$SLURM_JOBID\n',
                 'mkdir -p $ORCA_TMPDIR\n',
                 '\n',
                 '# Setup Orca\n',
-                'export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_0_1\n',
+                'export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_1_0-shared\n',
                 'export PATH=$PATH:$ORCA_BIN_DIR\n',
+                'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n',
                 '\n',
-                '# Copy files \n',
+                '# Copy input file\n',
                 'cp -f ' + shlexnames['inputfile'] + ' $ORCA_TMPDIR\n\n'])
+
+    # Launch the actual process
     out.extend(['cd $ORCA_TMPDIR\n',
                 '\n',
                 '# Print job info in output file\n',
@@ -309,11 +336,17 @@ def create_run_file(output, runvalues):
                 'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca ' + shlexnames['inputfile'],
                 ' > ' + shlexnames['basename'] + '.out\n',
                 '\n'])
+
     out.extend(['# Move files back to original directory\n',
                 'cp ' + shlexnames['basename'] + '.out $SLURM_SUBMIT_DIR\n',
                 'cp ' + shlexnames['basename'] + '.gbw $SLURM_SUBMIT_DIR\n',
                 'cp ' + shlexnames['basename'] + '.xyz $SLURM_SUBMIT_DIR\n',
                 '\n'])
+    if runvalues['nbo']:
+        out.extend(['# Retrieve NBO Files\n',
+                    'cp ' + runvalues['nbo_basefilename'] + '.*'
+                    ' $SLURM_SUBMIT_DIR\n'
+                    '\n'])
     out.extend(['# Empty scratch directory\n',
                 'rm -rf $ORCA_TMPDIR\n',
                 '\n',
@@ -329,22 +362,22 @@ def help_description():
     """Return description of program for help message."""
     return """
 Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
-The jobscript name should end with .inp .
+The job script name should end with .inp.
 """
 
 
 def help_epilog():
-    """Return additionnal help message."""
+    """Return additional help message."""
     return """
 Defaults values:
-  Default memory:          64 GB
+  Default memory:          64GB
   Default cores:           24
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
 but are overridden if command line arguments are provided.
 
-When using shared nodes (less than 24 cores), the default memory is 5GB per
+When using shared nodes (less than 24 cores), the default memory is 4GB per
 core.
 """
 
