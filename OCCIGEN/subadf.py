@@ -283,7 +283,7 @@ def create_run_file(output, runvalues):
     out.extend(['# Load ADF Module\n',
                 'module purge\n',
                 'module load intel/18.0\n',
-                'module load adf/2016.102-openmpi\n',
+                'module load adf/2018.105\n',
                 '\n'])
     if runvalues['nbo']:
         out.extend(['# Setup NBO6\n',
