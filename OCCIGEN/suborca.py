@@ -332,6 +332,12 @@ def create_run_file(output, runvalues):
     # runtime is walltime minus one minute (with at least one minute)
     walltime = [int(x) for x in runvalues['walltime'].split(':')]
     runtime = max(3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60, 60)
+    # If nproc was not defined, put it in the header of the file
+    if not(runvalues['nproc_in_input']):
+        out.extend(['# Add nprocs directive to header of ' + shlexnames['inputfile'] + '\n',
+                    "sed -i '1s;^;%pal\\n  nprocs \"$NCPU\"\\nend\\n\\n;' " + shlexnames['inputfile'] + '\n',
+                    '\n'])
+    # Starting orca for good
     out.extend(['# Start ORCA\n',
                 'timeout ' + str(runtime) + ' $ORCA_BIN_DIR/orca ' + shlexnames['inputfile'],
                 ' > ' + shlexnames['basename'] + '.out\n',
