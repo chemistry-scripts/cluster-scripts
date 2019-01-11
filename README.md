@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/72845791.svg)](https://zenodo.org/badge/latestdoi/72845791)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2537781.svg)](https://doi.org/10.5281/zenodo.2537781)
 
 # Cluster-scripts
 A collection of various scripts for submitting computational chemistry jobs to
