@@ -286,7 +286,7 @@ def create_run_file(output, runvalues):
     out.extend(['# Load modules necessary for ORCA\n',
                 'module purge\n',
                 'module load intel/18.0\n',
-                'module load openmpi/intel/2.0.2\n',
+                'module load openmpi/intel/2.0.4\n',
                 '\n'])
 
     # OCCIGEN stuff
@@ -312,7 +312,7 @@ def create_run_file(output, runvalues):
                 'mkdir -p $ORCA_TMPDIR\n',
                 '\n',
                 '# Setup Orca\n',
-                'export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_1_0-shared\n',
+                'export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_2_0-shared\n',
                 'export PATH=$PATH:$ORCA_BIN_DIR\n',
                 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n',
                 '\n',
