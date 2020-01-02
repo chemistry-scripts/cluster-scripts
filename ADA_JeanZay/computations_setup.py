@@ -56,6 +56,10 @@ class Computation:
     def software(self, value):
         self.__software = value
 
+    @property
+    def walltime(self):
+        return self.__runvalues["walltime"]
+
     @staticmethod
     def default_run_values():
         """Fill default runvalues."""
@@ -281,8 +285,8 @@ class Computation:
         out = [
             "#!/bin/bash\n",
             "#SBATCH -J " + shlexnames["inputfile"] + "\n",
-            "#SBATCH --constraint=" + self.runvalues["cluster_section"] + "\n"
             "#SBATCH --mail-type=ALL\n",
+            "#SBATCH --account=yck@cpu\n",
             "#SBATCH --mail-user=user@server.org\n",
             "#SBATCH --nodes=1\n",
         ]
