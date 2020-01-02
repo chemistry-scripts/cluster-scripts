@@ -54,9 +54,6 @@ def main():
 
     logger.addHandler(stream_handler)
 
-    # Setup runvalues with default settings
-    runvalues = default_run_values()
-
     # Get parameters from command line
     cmdline_args = get_options()
 
@@ -81,84 +78,66 @@ def main():
     # file endings
     os.system("dos2unix {0}".format(shlex.quote(input_file_name)))
 
-    # Get computation parameters from input file
-    runvalues = get_values_from_input_file(input_file_name, runvalues)
-
-    # Merge command-line parameters into runvalues
-    runvalues = fill_from_commandline(runvalues, cmdline_args)
-
-    # Fill with missing values and consolidate the whole thing
-    try:
-        runvalues = fill_missing_values(runvalues)
-    except ValueError as error:
-        print(" ------- An error occurred ------- ")
-        print(error)
-        print("Your job was not submitted")
-        print(" ------------ Exiting ------------ ")
-        sys.exit(1)
+    # Create computation object
+    computation = Computation(input_file_name, "g16", cmdline_args)
 
     # Create run file for gaussian
-    create_run_file(script_file_name, runvalues)
+    computation.create_run_file(script_file_name)
+
     # Submit the script
     os.system("sbatch {0}".format(shlex.quote(script_file_name)))
     print(
         "job {0} submitted with a walltime of {1} hours".format(
-            input_file_name, runvalues["walltime"]
+            input_file_name, computation.walltime
         )
     )
 
-    def get_options():
-        """Check command line options and accordingly set computation parameters."""
-        parser = argparse.ArgumentParser(
-            description=help_description(), epilog=help_epilog()
-        )
-        parser.formatter_class = argparse.RawDescriptionHelpFormatter
-        parser.add_argument(
-            "-p",
-            "--proc",
-            type=int,
-            help="Number of processors used for the computation",
-        )
-        parser.add_argument(
-            "-n", "--nodes", type=int, help="Number of nodes used for the computation"
-        )
-        parser.add_argument(
-            "-t",
-            "--walltime",
-            default="24:00:00",
-            type=str,
-            help="Maximum time allowed for the computation",
-        )
-        parser.add_argument(
-            "-m",
-            "--memory",
-            type=int,
-            help="Amount of memory allowed for the computation, in MB",
-        )
-        parser.add_argument(
-            "inputfile", type=str, nargs=1, help="The input file to submit"
-        )
 
-        try:
-            args = parser.parse_args()
-        except argparse.ArgumentError as error:
-            print(str(error))  # Print something like "option -a not recognized"
-            sys.exit(2)
+def get_options():
+    """Check command line options and accordingly set computation parameters."""
+    parser = argparse.ArgumentParser(
+        description=help_description(), epilog=help_epilog()
+    )
+    parser.formatter_class = argparse.RawDescriptionHelpFormatter
+    parser.add_argument(
+        "-p", "--proc", type=int, help="Number of processors used for the computation",
+    )
+    parser.add_argument(
+        "-n", "--nodes", type=int, help="Number of nodes used for the computation"
+    )
+    parser.add_argument(
+        "-t",
+        "--walltime",
+        default="24:00:00",
+        type=str,
+        help="Maximum time allowed for the computation",
+    )
+    parser.add_argument(
+        "-m",
+        "--memory",
+        type=int,
+        help="Amount of memory allowed for the computation, in MB",
+    )
+    parser.add_argument("inputfile", type=str, nargs=1, help="The input file to submit")
 
-        # Get values from parser
-        cmdline_args = dict.fromkeys(
-            ["inputfile", "walltime", "memory", "cores", "nodes"]
-        )
-        cmdline_args["inputfile"] = os.path.basename(args.inputfile[0])
-        cmdline_args["walltime"] = args.walltime
-        if args.proc:
-            cmdline_args["cores"] = args.proc
-        if args.nodes:
-            cmdline_args["nodes"] = args.nodes
-        if args.memory:
-            cmdline_args["memory"] = args.memory
+    try:
+        args = parser.parse_args()
+    except argparse.ArgumentError as error:
+        print(str(error))  # Print something like "option -a not recognized"
+        sys.exit(2)
 
-        return cmdline_args
+    # Get values from parser
+    cmdline_args = dict.fromkeys(["inputfile", "walltime", "memory", "cores", "nodes"])
+    cmdline_args["inputfile"] = os.path.basename(args.inputfile[0])
+    cmdline_args["walltime"] = args.walltime
+    if args.proc:
+        cmdline_args["cores"] = args.proc
+    if args.nodes:
+        cmdline_args["nodes"] = args.nodes
+    if args.memory:
+        cmdline_args["memory"] = args.memory
+
+    return cmdline_args
 
 
 def help_description():
