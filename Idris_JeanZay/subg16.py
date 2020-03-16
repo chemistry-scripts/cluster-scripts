@@ -4,7 +4,7 @@
 """
 Entry point for submission of Gaussian16 calculations on Jean Zay
 
-Last Update 2019-12-13 by Emmanuel Nicolas
+Last Update 2020-03-17 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
