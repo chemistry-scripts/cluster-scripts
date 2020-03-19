@@ -276,22 +276,25 @@ class Computation:
         logger.debug("Runvalues:  %s", self.runvalues)
         logger.debug("Shlexnames: %s", shlexnames)
 
-        # TODO: multi-nodes
-        # On SLURM, memory is defined per node
-        # #SBATCH --nodes=2
-        # #SBATCH --ntasks=48
-        # #SBATCH --ntasks-per-node=24
-        # #SBATCH --threads-per-core=1
         out = [
             "#!/bin/bash\n",
             "#SBATCH -J " + shlexnames["inputfile"] + "\n",
             "#SBATCH --mail-type=ALL\n",
             "#SBATCH --account=yck@cpu\n",
             "#SBATCH --mail-user=user@server.org\n",
+            "#SBATCH --partition=cpu_p1\n",
             "#SBATCH --nodes=1\n",
         ]
+        # Change qos if longer walltimes
+        walltime = [int(x) for x in self.runvalues["walltime"].split(":")]
+        if walltime[0] >= 20:
+            out.extend(["#SBATCH --qos=qos_cpu-t4\n"])
+        else:
+            out.extend(["#SBATCH --qos=qos_cpu-t3\n"])
         if self.runvalues["nproc_in_input"]:
             out.extend(["#SBATCH --ntasks=" + str(self.runvalues["cores"]) + "\n"])
+        else:
+            out.extend(["#SBATCH --ntasks=40\n"])
         out.extend(
             [
                 "#SBATCH --mem=" + str(self.runvalues["memory"]) + "\n",
@@ -390,7 +393,6 @@ class Computation:
                 "\n",
             ]
         )
-        walltime = [int(x) for x in self.runvalues["walltime"].split(":")]
         runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
         out.extend(["# Start Gaussian\n", "( "])
         if not self.runvalues["nproc_in_input"]:  # nproc line not in input
