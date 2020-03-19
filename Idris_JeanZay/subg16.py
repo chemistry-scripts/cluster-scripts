@@ -76,7 +76,9 @@ def main():
         sys.exit()
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
-    os.system("dos2unix {0}".format(shlex.quote(input_file_name)))
+    #    os.system("dos2unix {0}".format(shlex.quote(input_file_name)))
+    text = open(input_file_name, "rb").read().replace("\r\n", "\n")
+    open(input_file_name, "wb").write(text)
 
     # Create computation object
     computation = Computation(input_file_name, "g16", cmdline_args)
