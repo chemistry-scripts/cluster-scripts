@@ -108,7 +108,7 @@ def get_options():
     parser.add_argument(
         "-t",
         "--walltime",
-        default="24:00:00",
+        default="20:00:00",
         type=str,
         help="Maximum time allowed for the computation",
     )

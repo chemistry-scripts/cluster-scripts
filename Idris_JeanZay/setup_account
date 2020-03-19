@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+# ##################################################
+# Setup account for easier computing on Jean Zay cluster
+#
+
+# Safety conversion
+dos2unix *
+
+# Create directories
+mkdir -p ~/.local/bin
+mkdir -p $SCRATCH/adf
+mkdir -p $SCRATCH/gaussian/rwf
+mkdir -p $SCRATCH/orca
+
+# Create shortcuts for the scratch
+ln -sTf $SCRATCH/adf ~/scratchADF
+ln -sTf $SCRATCH/gaussian ~/scratchGaussian
+ln -sTf $SCRATCH/orca ~/scratchOrca
+
+# Retrieve email and name from user
+echo -n "Enter your email address and press [ENTER]: "
+read mail
+echo -n "Enter your first name and press [ENTER]: "
+read firstname
+
+# Copy files and change emails and firstnames when necessary
+sed -e "s/user@server.org/${mail}/" < forward > ~/.forward
+sed -e "s/username/${firstname}/" < bash_profile > ~/.bash_profile
+cp -f bashrc ~/.bashrc
+cp -f emacs ~/.emacs
+cp -f __init__.py ~/.local/bin/__init__.py
+sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
+sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
+# sed -e "s/user@server.org/${mail}/" < subadf.py > ~/.local/bin/subadf.py
+# sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
+
+# Change permissions
+chmod +x ~/.local/bin/__init__.py
+chmod +x ~/.local/bin/subg16.py
+chmod +x ~/.local/bin/computations_setup.py
+# chmod +x ~/.local/bin/subadf.py
+# chmod +x ~/.local/bin/suborca.py
+
+echo "Your account was set up. You should log off and back on to make sure"
+echo "everything works."
+echo ""
+echo "Report every problem to Emmanuel Nicolas (emmanuel.nicolas -at- cea.fr)"

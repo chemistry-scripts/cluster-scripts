@@ -87,7 +87,7 @@ class Computation:
         runvalues["outputfile"] = ""
         runvalues["nodes"] = 1
         runvalues["cores"] = ""
-        runvalues["walltime"] = "24:00:00"
+        runvalues["walltime"] = "20:00:00"
         runvalues["memory"] = 4000  # In MB
         runvalues["gaussian_memory"] = 1000  # in MB
         runvalues["chk"] = set()
@@ -311,10 +311,10 @@ class Computation:
             [
                 "# Load Gaussian Module\n",
                 "module purge\n",
-                "module load gaussian/G16/B.01\n",
+                "module load gaussian/g16-revC01\n",
                 "\n",
                 "# Setup Gaussian specific variables\n",
-                "export g16root\n",
+                "export g16root='/gpfslocalsup/prod/g16/rev-C01/'\n",
                 "source $g16root/g16/bsd/g16.profile\n",
             ]
         )
@@ -334,7 +334,7 @@ class Computation:
         out.extend(
             [
                 "# Setup Scratch\n",
-                "export GAUSS_SCRDIR=$SCRATCHDIR/gaussian/$SLURM_JOB_ID\n",
+                "export GAUSS_SCRDIR=$SCRATCH/gaussian/$SLURM_JOB_ID\n",
                 "mkdir -p $GAUSS_SCRDIR\n",
                 "\n",
                 "# Copy input file\n",
