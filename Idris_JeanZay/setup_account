@@ -30,6 +30,7 @@ sed -e "s/username/${firstname}/" < bash_profile > ~/.bash_profile
 cp -f bashrc ~/.bashrc
 cp -f emacs ~/.emacs
 cp -f __init__.py ~/.local/bin/__init__.py
+sed -e "s/user@server.org/${mail}/" < subg09.py > ~/.local/bin/subg09.py
 sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
 sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
 # sed -e "s/user@server.org/${mail}/" < subadf.py > ~/.local/bin/subadf.py
