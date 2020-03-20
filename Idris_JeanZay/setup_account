@@ -38,6 +38,7 @@ sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/compu
 
 # Change permissions
 chmod +x ~/.local/bin/__init__.py
+chmod +x ~/.local/bin/subg09.py
 chmod +x ~/.local/bin/subg16.py
 chmod +x ~/.local/bin/computations_setup.py
 # chmod +x ~/.local/bin/subadf.py
