@@ -160,7 +160,7 @@ class Computation:
         if memory - gaussian_memory < 4096:
             # Too little overhead
             raise ValueError("Too much memory required for Gaussian to run properly")
-        if gaussian_memory > 118000:
+        if gaussian_memory > 186000:
             # Too much memory
             raise ValueError("Exceeded max allowed memory")
 
@@ -194,63 +194,18 @@ class Computation:
 
     def compute_memory(self):
         """
-        Return ideal memory value for OCCIGEN.
+        Return ideal memory value for Jean Zay.
 
-        4GB per core, or memory from input + 4000 MB for overhead.
-        Computed to use as close as possible the memory available.
+        192GB available per core : assume 186 Gb, and remove 6 Gb for overhead.
         """
-        memory = 0
+        memory = 186000
         gaussian_memory = 0
 
         if self.runvalues["memory_in_input"]:
             # Memory defined in input file
             gaussian_memory = self.runvalues["gaussian_memory"]
-
-            # Now switch according to nproc value
-            if self.runvalues["nproc_in_input"]:
-                if 24 < self.runvalues["cores"] <= 28:
-                    # Broadwell partition
-                    memory = 59000
-                elif self.runvalues["cores"] == 24:
-                    # Haswell, but full partition
-                    if gaussian_memory < 53000:
-                        # Allow run on 64GB nodes
-                        memory = 59000
-                    else:
-                        # Force 128GB nodes
-                        memory = 118000
-                elif self.runvalues["cores"] < 24:
-                    # We are on shared nodes
-                    # Choose max from 4830 MB per core, or defined memory + 4GB overhead
-                    memory = max(self.runvalues["cores"] * 4830, gaussian_memory + 4096)
-            else:
-                # nproc undefined, assume single node and choose simply between 64GB and 128GB nodes
-                if gaussian_memory < 53000:
-                    # Allow run on 64GB nodes
-                    memory = 59000
-                else:
-                    # Force 128GB nodes
-                    memory = 118000
         else:
-            # Memory not input, compute everything according to number of cores
-            if self.runvalues["nproc_in_input"]:
-                if 24 < self.runvalues["cores"] <= 28:
-                    # Broadwell partition
-                    gaussian_memory = 53000
-                    memory = 59000
-                elif self.runvalues["cores"] == 24:
-                    # Haswell, partition, allow 64GB
-                    gaussian_memory = 53000
-                    memory = 59000
-                elif self.runvalues["cores"] < 24:
-                    # Shared nodes
-                    # 4830 MB per core, remove 4GB overhead for Gaussian
-                    memory = self.runvalues["cores"] * 4830
-                    gaussian_memory = memory - 4096
-            else:
-                # nproc undefined, assume single 64GB node
-                gaussian_memory = 53000
-                memory = 59000
+            gaussian_memory = 180000
 
         return memory, gaussian_memory
 
