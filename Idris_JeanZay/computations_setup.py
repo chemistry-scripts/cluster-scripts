@@ -58,6 +58,7 @@ class Computation:
 
     @property
     def walltime(self):
+        """Walltime."""
         return self.__runvalues["walltime"]
 
     @staticmethod
@@ -149,9 +150,9 @@ class Computation:
         elif self.runvalues["cores"] > 28 and self.runvalues["nodes"] == 1:
             raise ValueError("Number of cores cannot exceed 28 for one node.")
         elif self.runvalues["nodes"] > 1:
-            raise ValueError("Multiple nodes not supported at the moment.")
-
-        # TODO: manage the multiple nodes case
+            raise ValueError(
+                "Multiple nodes not supported on this cluster for gaussian."
+            )
 
         memory, gaussian_memory = self.compute_memory()
         self.runvalues["memory"] = memory
@@ -418,9 +419,9 @@ class Computation:
             [
                 "# If Gaussian crashed or was stopped somehow, copy the rwf\n",
                 "for f in $GAUSS_SCRDIR/*rwf; do\n",
-                "    mkdir -p $SCRATCHDIR/gaussian/rwf\n"
+                "    mkdir -p $SCRATCH/gaussian/rwf\n"
                 # Move rwf as JobName_123456.rwf to the rwf folder in scratch
-                '    [ -f "$f" ] && mv $f $SCRATCHDIR/gaussian/rwf/'
+                '    [ -f "$f" ] && mv $f $SCRATCH/gaussian/rwf/'
                 + shlexnames["basename"]
                 + "_$SLURM_JOB_ID.rwf\n",
                 "done\n",
