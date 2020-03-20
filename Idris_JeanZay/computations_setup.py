@@ -310,17 +310,30 @@ class Computation:
                     "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
                 ]
             )
-        out.extend(
-            [
-                "# Load Gaussian Module\n",
-                "module purge\n",
-                "module load gaussian/g16-revC01\n",
-                "\n",
-                "# Setup Gaussian specific variables\n",
-                "export g16root='/gpfslocalsup/prod/g16/rev-C01/'\n",
-                "source $g16root/g16/bsd/g16.profile\n",
-            ]
-        )
+        if self.__software == "g09":
+            out.extend(
+                [
+                    "# Load Gaussian Module\n",
+                    "module purge\n",
+                    "module load gaussian/g09-revD01\n",
+                    "\n",
+                    "# Setup Gaussian specific variables\n",
+                    "export g09root='/gpfslocalsup/prod/g09/rev-C01/'\n",
+                    "source $g09root/g09/bsd/g09.profile\n",
+                ]
+            )
+        elif self.__software == "g16":
+            out.extend(
+                [
+                    "# Load Gaussian Module\n",
+                    "module purge\n",
+                    "module load gaussian/g16-revC01\n",
+                    "\n",
+                    "# Setup Gaussian specific variables\n",
+                    "export g16root='/gpfslocalsup/prod/g16/rev-C01/'\n",
+                    "source $g16root/g16/bsd/g16.profile\n",
+                ]
+            )
         if self.runvalues["nproc_in_input"]:
             out.extend(["export OMP_NUM_THREADS=$SLURM_NTASKS\n", "\n"])
         else:
@@ -399,14 +412,24 @@ class Computation:
             out.extend("echo %NProcShared=${NCPU}; ")
         if not self.runvalues["memory_in_input"]:  # memory line not in input
             out.extend("echo %Mem=" + str(self.runvalues["gaussian_memory"]) + "MB ; ")
-        out.extend(
-            [
-                "cat " + shlexnames["inputfile"] + " ) | ",
-                "timeout " + str(runtime) + " g16 > ",
-                "" + shlexnames["basename"] + ".log\n",
-                "\n",
-            ]
-        )
+        if self.__software == "g09":
+            out.extend(
+                [
+                    "cat " + shlexnames["inputfile"] + " ) | ",
+                    "timeout " + str(runtime) + " g09 > ",
+                    "" + shlexnames["basename"] + ".log\n",
+                    "\n",
+                ]
+            )
+        elif self.__software == "g16":
+            out.extend(
+                [
+                    "cat " + shlexnames["inputfile"] + " ) | ",
+                    "timeout " + str(runtime) + " g16 > ",
+                    "" + shlexnames["basename"] + ".log\n",
+                    "\n",
+                ]
+            )
         out.extend(
             [
                 "# Move files back to original directory\n",
