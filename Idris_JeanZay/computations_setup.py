@@ -28,6 +28,7 @@ class Computation:
         self.__software = software
         self.__runvalues = self.default_run_values()
         self.fill_from_commandline(cmdline_args)
+        self.fill_missing_values()
 
     @property
     def runvalues(self):
@@ -161,7 +162,7 @@ class Computation:
         if memory - gaussian_memory < 4096:
             # Too little overhead
             raise ValueError("Too much memory required for Gaussian to run properly")
-        if gaussian_memory > 186000:
+        if gaussian_memory > 160000:
             # Too much memory
             raise ValueError("Exceeded max allowed memory")
 
@@ -197,16 +198,16 @@ class Computation:
         """
         Return ideal memory value for Jean Zay.
 
-        192GB available per core : assume 186 Gb, and remove 6 Gb for overhead.
+        160GB available per core : remove 6 Gb for overhead.
         """
-        memory = 186000
+        memory = 160000
         gaussian_memory = 0
 
         if self.runvalues["memory_in_input"]:
             # Memory defined in input file
             gaussian_memory = self.runvalues["gaussian_memory"]
         else:
-            gaussian_memory = 180000
+            gaussian_memory = 154000
 
         return memory, gaussian_memory
 
@@ -243,7 +244,7 @@ class Computation:
         ]
         # Change qos if longer walltimes
         walltime = [int(x) for x in self.runvalues["walltime"].split(":")]
-        if walltime[0] >= 20:
+        if walltime[0] * 3600 + walltime[1] * 60 + walltime[2] > 72000:  # > 20h
             out.extend(["#SBATCH --qos=qos_cpu-t4\n"])
         else:
             out.extend(["#SBATCH --qos=qos_cpu-t3\n"])
