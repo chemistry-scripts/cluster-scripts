@@ -29,6 +29,7 @@ class Computation:
         self.__runvalues = self.default_run_values()
         self.fill_from_commandline(cmdline_args)
         self.fill_missing_values()
+        self.shlexnames = self.create_shlexnames()
 
     @property
     def runvalues(self):
@@ -229,13 +230,12 @@ class Computation:
         logger = logging.getLogger()
 
         # Setup names to use in file
-        shlexnames = self.create_shlexnames()
         logger.debug("Runvalues:  %s", self.runvalues)
-        logger.debug("Shlexnames: %s", shlexnames)
+        logger.debug("Shlexnames: %s", self.shlexnames)
 
         out = [
             "#!/bin/bash\n",
-            "#SBATCH -J " + shlexnames["inputfile"] + "\n",
+            "#SBATCH -J " + self.shlexnames["inputfile"] + "\n",
             "#SBATCH --mail-type=ALL\n",
             "#SBATCH --account=yck@cpu\n",
             "#SBATCH --mail-user=user@server.org\n",
@@ -256,7 +256,7 @@ class Computation:
             [
                 "#SBATCH --mem=" + str(self.runvalues["memory"]) + "\n",
                 "#SBATCH --time=" + self.runvalues["walltime"] + "\n",
-                "#SBATCH --output=" + shlexnames["basename"] + ".slurmout\n",
+                "#SBATCH --output=" + self.shlexnames["basename"] + ".slurmout\n",
                 "\n",
             ]
         )
@@ -311,13 +311,13 @@ class Computation:
                 "mkdir -p $GAUSS_SCRDIR\n",
                 "\n",
                 "# Copy input file\n",
-                "cp -f " + shlexnames["inputfile"] + " $GAUSS_SCRDIR\n\n",
+                "cp -f " + self.shlexnames["inputfile"] + " $GAUSS_SCRDIR\n\n",
             ]
         )
         # If chk file is defined in input and exists, copy it in scratch
         if self.runvalues["chk"] != set():
             out.extend("# Copy chk file in scratch if it exists\n")
-            for chk in shlexnames["chk"]:
+            for chk in self.shlexnames["chk"]:
                 out.extend(
                     [
                         "if [ -f " + chk + " ] \n",
@@ -329,7 +329,7 @@ class Computation:
         # If oldchk file is defined in input and exists, copy it in scratch
         if self.runvalues["oldchk"] != set():
             out.extend("# Copy oldchk file in scratch if it exists\n")
-            for oldchk in shlexnames["oldchk"]:
+            for oldchk in self.shlexnames["oldchk"]:
                 out.extend(
                     [
                         "if [ -f " + oldchk + " ] \n",
@@ -341,7 +341,7 @@ class Computation:
         # If rwf file is defined in input and exists, copy it in scratch
         if self.runvalues["rwf"] != set():
             out.extend("# Copy rwf file in scratch if it exists\n")
-            for rwf in shlexnames["rwf"]:
+            for rwf in self.shlexnames["rwf"]:
                 out.extend(
                     [
                         "if [ -f " + rwf + " ] \n",
@@ -390,7 +390,7 @@ class Computation:
         out.extend(
             [
                 "# Move files back to original directory\n",
-                "cp " + shlexnames["basename"] + ".log $SLURM_SUBMIT_DIR\n",
+                "cp " + self.shlexnames["basename"] + ".log $SLURM_SUBMIT_DIR\n",
                 "\n",
             ]
         )
@@ -423,7 +423,7 @@ class Computation:
                 "    mkdir -p $SCRATCH/gaussian/rwf\n"
                 # Move rwf as JobName_123456.rwf to the rwf folder in scratch
                 '    [ -f "$f" ] && mv $f $SCRATCH/gaussian/rwf/'
-                + shlexnames["basename"]
+                + self.shlexnames["basename"]
                 + "_$SLURM_JOB_ID.rwf\n",
                 "done\n",
                 "\n",
