@@ -245,6 +245,7 @@ class Computation:
             "#SBATCH --mail-user=user@server.org\n",
             "#SBATCH --partition=cpu_p1\n",
             "#SBATCH --nodes=1\n",
+            "#SBATCH --hint=nomultithread\n",
         ]
         # Change qos if longer walltimes
         walltime = [int(x) for x in self.runvalues["walltime"].split(":")]
@@ -367,30 +368,12 @@ class Computation:
                 "\n",
             ]
         )
-        runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
-        out.extend(["# Start Gaussian\n", "( "])
-        if not self.runvalues["nproc_in_input"]:  # nproc line not in input
-            out.extend("echo %NProcShared=${NCPU}; ")
-        if not self.runvalues["memory_in_input"]:  # memory line not in input
-            out.extend("echo %Mem=" + str(self.runvalues["gaussian_memory"]) + "MB ; ")
-        if self.__software == "g09":
-            out.extend(
-                [
-                    "cat " + shlexnames["inputfile"] + " ) | ",
-                    "timeout " + str(runtime) + " g09 > ",
-                    "" + shlexnames["basename"] + ".log\n",
-                    "\n",
-                ]
-            )
-        elif self.__software == "g16":
-            out.extend(
-                [
-                    "cat " + shlexnames["inputfile"] + " ) | ",
-                    "timeout " + str(runtime) + " g16 > ",
-                    "" + shlexnames["basename"] + ".log\n",
-                    "\n",
-                ]
-            )
+
+        # Build and add Gaussian starting line
+        out.extend(["# Start Gaussian\n"])
+        gaussian_start_line = self.gaussian_start_line()
+        out.extend(gaussian_start_line)
+
         out.extend(
             [
                 "# Move files back to original directory\n",
@@ -442,3 +425,30 @@ class Computation:
         # Write .sh file
         with open(output, "w") as script_file:
             script_file.writelines(out)
+
+    def gaussian_start_line(self):
+        """Start line builder"""
+
+        # Create timeout line
+        walltime = self.walltime_as_list()
+        runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
+        start_line = "timeout " + str(runtime) + " "
+
+        # g09 or g16
+        start_line += self.__software + " "
+
+        # Manage processors
+        if not self.runvalues["nproc_in_input"]:
+            # nproc line not in input, set proc number as command-line argument
+            start_line += '-c="0-$(($NCPU-1))" '
+        if not self.runvalues["memory_in_input"]:
+            # memory line not in input, set it as command-line argument
+            start_line += "-m=" + str(self.runvalues["gaussian_memory"]) + "MB "
+
+        # Add input file
+        start_line += "< " + self.shlexnames["inputfile"]
+
+        # Add output file
+        start_line += " >" + self.shlexnames["basename"] + ".log\n"
+
+        return start_line
