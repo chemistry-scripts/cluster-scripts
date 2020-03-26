@@ -159,7 +159,7 @@ class Computation:
         self.runvalues["memory"] = memory
         self.runvalues["gaussian_memory"] = gaussian_memory
 
-        if memory - gaussian_memory < 4096:
+        if memory - gaussian_memory < 6000:
             # Too little overhead
             raise ValueError("Too much memory required for Gaussian to run properly")
         if gaussian_memory > 160000:
@@ -207,7 +207,7 @@ class Computation:
             # Memory defined in input file
             gaussian_memory = self.runvalues["gaussian_memory"]
         else:
-            gaussian_memory = 154000
+            gaussian_memory = 140000
 
         return memory, gaussian_memory
 
