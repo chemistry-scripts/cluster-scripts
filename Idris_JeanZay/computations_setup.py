@@ -212,6 +212,10 @@ class Computation:
 
         return memory, gaussian_memory
 
+    def walltime_as_list(self):
+        """Return walltime as list: [20,00,00]"""
+        return [int(x) for x in self.runvalues["walltime"].split(":")]
+
     def create_run_file(self, output):
         """
         Create .sh file that contains the script to actually run on the server.
