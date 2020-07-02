@@ -17,11 +17,10 @@ module load intel/17.2
 module load openmpi/intel/2.0.4
 
 # Gaussian
-module load gaussian/g09
-source ${g09root}/g09/bsd/g09.profile
+module load gaussian/g16/C.01
 
 # ADF
-module load adf/2018.105
+module load adf/2019.102
 
 # Python
 module load python/3.6.3
