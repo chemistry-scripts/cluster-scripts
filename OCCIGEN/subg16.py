@@ -410,7 +410,7 @@ def create_run_file(output, runvalues):
         [
             "# Load Gaussian Module\n",
             "module purge\n",
-            "module load gaussian/G16/B.01\n",
+            "module load gaussian/G16/C.01\n",
             "\n",
             "# Setup Gaussian specific variables\n",
             "export g16root\n",
@@ -426,6 +426,15 @@ def create_run_file(output, runvalues):
             [
                 "# Setup NBO6\n",
                 "export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n",
+                "export PATH=$PATH:$NBOBIN\n",
+                "\n",
+            ]
+        )
+    if runvalues["nbo"]:
+        out.extend(
+            [
+                "# Setup NBO6\n",
+                "export NBOBIN=$SHAREDHOMEDIR/nbo6_g16/bin\n",
                 "export PATH=$PATH:$NBOBIN\n",
                 "\n",
             ]
