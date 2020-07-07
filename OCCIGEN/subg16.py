@@ -425,15 +425,6 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Setup NBO6\n",
-                "export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n",
-                "export PATH=$PATH:$NBOBIN\n",
-                "\n",
-            ]
-        )
-    if runvalues["nbo"]:
-        out.extend(
-            [
-                "# Setup NBO6\n",
                 "export NBOBIN=$SHAREDHOMEDIR/nbo6_g16/bin\n",
                 "export PATH=$PATH:$NBOBIN\n",
                 "\n",
