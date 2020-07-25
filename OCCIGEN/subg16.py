@@ -493,6 +493,7 @@ def create_run_file(output, runvalues):
     runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
     out.extend(["# Start Gaussian\n", "( "])
     if not runvalues["nproc_in_input"]:  # nproc line not in input
+        # TODO: Switch to %CPU=0-${NCPU} directive --> plus testing for performance
         out.extend("echo %NProcShared=${NCPU}; ")
     if not runvalues["memory_in_input"]:  # memory line not in input
         out.extend("echo %Mem=" + str(runvalues["gaussian_memory"]) + "MB ; ")
