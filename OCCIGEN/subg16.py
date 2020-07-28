@@ -353,6 +353,23 @@ def compute_memory(runvalues):
     return memory, gaussian_memory
 
 
+def gaussian_start_line(runvalues, input, output):
+    """
+    Build gaussian start line as timeout 123456 g16 -m XXXGB -c 0-28 input.com > output.log
+    """
+    walltime = [int(x) for x in runvalues["walltime"].split(":")]
+    runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
+    start_line = ["# Start Gaussian\n", "timeout " + str(runtime) + " g16 "]
+
+    if not runvalues["nproc_in_input"]:  # nproc line not in input
+        # TODO: Switch to %CPU=0-${NCPU} directive --> plus testing for performance
+        start_line.append('-c="0-${NCPU}" ')
+    if not runvalues["memory_in_input"]:  # memory line not in input
+        start_line.append("-m=" + str(runvalues["gaussian_memory"]) + "MB ")
+    start_line.append(input + " > " + output + ".log\n")
+    return start_line
+
+
 def create_run_file(output, runvalues):
     """
     Create .sh file that contains the script to actually run on the server.
@@ -489,22 +506,11 @@ def create_run_file(output, runvalues):
             "\n",
         ]
     )
-    walltime = [int(x) for x in runvalues["walltime"].split(":")]
-    runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
-    out.extend(["# Start Gaussian\n", "( "])
-    if not runvalues["nproc_in_input"]:  # nproc line not in input
-        # TODO: Switch to %CPU=0-${NCPU} directive --> plus testing for performance
-        out.extend("echo %NProcShared=${NCPU}; ")
-    if not runvalues["memory_in_input"]:  # memory line not in input
-        out.extend("echo %Mem=" + str(runvalues["gaussian_memory"]) + "MB ; ")
+
     out.extend(
-        [
-            "cat " + shlexnames["inputfile"] + " ) | ",
-            "timeout " + str(runtime) + " g16 > ",
-            "" + shlexnames["basename"] + ".log\n",
-            "\n",
-        ]
+        gaussian_start_line(runvalues, shlexnames["inputfile"], shlexnames["basename"])
     )
+
     out.extend(
         [
             "# Move files back to original directory\n",
