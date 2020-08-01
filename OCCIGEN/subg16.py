@@ -362,11 +362,10 @@ def gaussian_start_line(runvalues, input_file, output):
     start_line = ["# Start Gaussian\n", "timeout " + str(runtime) + " g16 "]
 
     if not runvalues["nproc_in_input"]:  # nproc line not in input
-        # TODO: Switch to %CPU=0-${NCPU} directive --> plus testing for performance
-        start_line.append('-c="0-${NCPU}" ')
+        start_line.append('-c="0-$((${NCPU}-1))" ')
     if not runvalues["memory_in_input"]:  # memory line not in input
         start_line.append("-m=" + str(runvalues["gaussian_memory"]) + "MB ")
-    start_line.append(input + " > " + output + ".log\n")
+    start_line.append(input_file + " > " + output + ".log\n")
     return start_line
 
 
