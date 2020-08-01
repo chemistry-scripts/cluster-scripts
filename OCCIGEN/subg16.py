@@ -211,7 +211,7 @@ def default_run_values():
 
 def get_values_from_input_file(input_file, runvalues):
     """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
-    with open(input_file, "r") as file:
+    with open(input_file) as file:
         # Go through lines and test if they are containing nproc, mem, etc. related
         # directives.
         for line in file.readlines():
@@ -353,9 +353,9 @@ def compute_memory(runvalues):
     return memory, gaussian_memory
 
 
-def gaussian_start_line(runvalues, input, output):
+def gaussian_start_line(runvalues, input_file, output):
     """
-    Build gaussian start line as timeout 123456 g16 -m XXXGB -c 0-28 input.com > output.log
+    Build gaussian start line as timeout 123456 g16 -m XXXGB -c 0-27 input.com > output.log
     """
     walltime = [int(x) for x in runvalues["walltime"].split(":")]
     runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
