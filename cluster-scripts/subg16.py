@@ -81,7 +81,7 @@ def main():
     open(input_file_name, "w").write(text)
 
     # Create computation object
-    computation = Computation(input_file_name, "g09", cmdline_args)
+    computation = Computation(input_file_name, "g16", cmdline_args)
 
     # Create run file for gaussian
     computation.create_run_file(script_file_name)
@@ -145,7 +145,7 @@ def get_options():
 def help_description():
     """Return description of program for help message."""
     return """
-Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
+Setup and submit a job to the SLURM queueing system.
 The job script name should end with .gjf or .com.
 """
 

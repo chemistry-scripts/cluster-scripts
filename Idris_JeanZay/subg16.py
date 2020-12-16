@@ -9,13 +9,13 @@ email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
 
-from computations_setup import Computation
 import argparse
-import sys
-import os
 import logging
+import os
 import shlex
-import re
+import sys
+
+from computations_setup import Computation
 
 
 def main():
