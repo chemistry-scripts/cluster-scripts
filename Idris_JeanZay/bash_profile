@@ -126,4 +126,4 @@ alias watchLogs='watch tail -n10 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out
 # Better alternative, only a problem with quotes
 # alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
 
-alias watchQueue='watch "squeue -o '"'"'%.8i %.9P %10u %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
+alias watchQueue='watch "squeue -o '"'"'%.8i %.4P %.25j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
