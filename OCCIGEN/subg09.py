@@ -418,7 +418,7 @@ def create_run_file(output, runvalues):
         ]
     )
     if runvalues["nproc_in_input"]:
-        out.extend(["export OMP_NUM_THREADS=$SLURM_NTASKS\n", "\n"])
+        out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
     else:
         out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
     if runvalues["nbo"]:
@@ -484,7 +484,7 @@ def create_run_file(output, runvalues):
             'echo "job_id : $SLURM_JOB_ID"\n',
             'echo "job_name : $SLURM_JOB_NAME"\n',
             'echo "node_number : $SLURM_JOB_NUM_NODES nodes"\n',
-            'echo "core number : $SLURM_NTASKS cores"\n',
+            'echo "core number : $SLURM_JOB_CPUS_PER_NODE cores"\n',
             'echo "Node list : $SLURM_JOB_NODELIST"\n',
             "\n",
         ]
