@@ -416,13 +416,6 @@ def create_run_file(output, runvalues):
             "\n",
         ]
     )
-    if not runvalues["nproc_in_input"]:  # nproc line not in input
-        out.extend(
-            [
-                "# Compute actual cpu number\n",
-                "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
-            ]
-        )
     out.extend(
         [
             "# Load Gaussian Module\n",
@@ -432,12 +425,9 @@ def create_run_file(output, runvalues):
             "# Setup Gaussian specific variables\n",
             "export g16root\n",
             "source $g16root/g16/bsd/g16.profile\n",
+            "export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"
         ]
     )
-    if runvalues["nproc_in_input"]:
-        out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
-    else:
-        out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
     if runvalues["nbo"]:
         out.extend(
             [

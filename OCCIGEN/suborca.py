@@ -331,8 +331,7 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Compute actual cpu number\n",
-                "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n",
-                "export OMP_NUM_THREADS=$NCPU\n",
+                "export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n",
                 "\n",
             ]
         )
@@ -388,7 +387,7 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Add nprocs directive to header of " + shlexnames["inputfile"] + "\n",
-                "sed -i '1s;^;%pal\\n  nprocs '$NCPU'\\nend\\n\\n;' "
+                "sed -i '1s;^;%pal\\n  nprocs '$SLURM_JOB_CPUS_PER_NODE'\\nend\\n\\n;' "
                 + shlexnames["inputfile"]
                 + "\n",
                 "\n",

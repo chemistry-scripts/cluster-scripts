@@ -350,7 +350,7 @@ def create_run_file(output, runvalues):
             'echo "job_id : $SLURM_JOBID"\n',
             'echo "job_name : $SLURM_JOB_NAME"\n',
             'echo "node_number : $SLURM_NNODES nodes"\n',
-            'echo "core number : $SLURM_NPROCS cores"\n',
+            'echo "core number : $SLURM_JOB_CPUS_PER_NODE cores"\n',
             "\n",
         ]
     )
