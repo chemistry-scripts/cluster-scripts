@@ -301,6 +301,7 @@ def create_run_file(output, runvalues):
         "#SBATCH --mail-type=ALL\n",
         "#SBATCH --mail-user=user@server.org\n",
         "#SBATCH --nodes=" + str(runvalues["nodes"]) + "\n",
+        '#SBATCH --hint=nomultithread\n',
     ]
     if runvalues["nproc_in_input"]:
         out.extend(["#SBATCH --ntasks=" + str(runvalues["cores"]) + "\n"])

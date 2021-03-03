@@ -302,6 +302,7 @@ def create_run_file(output, runvalues):
         "#SBATCH --mail-type=ALL\n",
         "#SBATCH --mail-user=user@server.org\n",
         "#SBATCH --nodes=1\n",
+        '#SBATCH --hint=nomultithread\n',
         "#SBATCH --ntasks=" + str(runvalues["cores"]) + "\n",
         "#SBATCH --mem=" + str(runvalues["memory"]) + "\n",
         "#SBATCH --time=" + runvalues["walltime"] + "\n",
