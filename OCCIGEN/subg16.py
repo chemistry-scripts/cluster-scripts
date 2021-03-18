@@ -5,7 +5,7 @@
 Submit script for Gaussian16 for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2018-09-26 by Emmanuel Nicolas
+Last Update 2021-03-18 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """

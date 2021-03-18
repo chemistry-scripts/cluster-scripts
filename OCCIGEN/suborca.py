@@ -5,7 +5,7 @@
 Submit script for Orca for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2019-01-10 by Emmanuel Nicolas
+Last Update 2021-03-18 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed and accessible
 """
