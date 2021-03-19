@@ -86,7 +86,7 @@ alias almostFinished="echo '************************************';
                      "
 alias finished="echo '************************************';
                 echo 'Finished Computations:' ;
-                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian finished ~/*
+                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian 'Computation finished' ~/*
                "
 
 alias nbtour="echo '************************************';
