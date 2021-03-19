@@ -301,6 +301,7 @@ def create_run_file(output, runvalues):
         "#SBATCH --mail-type=ALL\n",
         "#SBATCH --mail-user=user@server.org\n",
         "#SBATCH --nodes=" + str(runvalues["nodes"]) + "\n",
+        '#SBATCH --ntasks-per-core=1\n',
         '#SBATCH --hint=nomultithread\n',
     ]
     if runvalues["nproc_in_input"]:
@@ -331,7 +332,8 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Compute actual cpu number\n",
-                "export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n",
+                "export NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n",
+                "export OMP_NUM_THREADS=$NCPU\n",
                 "\n",
             ]
         )
@@ -387,7 +389,7 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Add nprocs directive to header of " + shlexnames["inputfile"] + "\n",
-                "sed -i '1s;^;%pal\\n  nprocs '$SLURM_JOB_CPUS_PER_NODE'\\nend\\n\\n;' "
+                "sed -i '1s;^;%pal\\n  nprocs '$NCPU'\\nend\\n\\n;' "
                 + shlexnames["inputfile"]
                 + "\n",
                 "\n",
