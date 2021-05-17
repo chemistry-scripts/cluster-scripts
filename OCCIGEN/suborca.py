@@ -387,7 +387,7 @@ def create_run_file(output, runvalues):
 
     if len(runvalues["xyz_files"]) > 0:
         for xyz_file in runvalues["xyz_files"]:
-            out.append("cp " + xyz_file + "$ORCA_TMPDIR\n")
+            out.append("cp " + xyz_file + " $ORCA_TMPDIR\n")
         out.append("\n")
 
     # Launch the actual process
