@@ -181,6 +181,7 @@ def default_run_values():
             "memory",
             "nproc_in_input",
             "cluster_section",
+            "xyz_files",
         ]
     )
     runvalues["inputfile"] = ""
@@ -193,6 +194,7 @@ def default_run_values():
     runvalues["nbo"] = False
     runvalues["nbo_basefilename"] = ""
     runvalues["cluster_section"] = "HSW24"
+    runvalues["xyz_files"] = list()
     return runvalues
 
 
@@ -211,6 +213,9 @@ def get_values_from_input_file(input_file, runvalues):
             if "FILE=" in line:
                 # FILE=FILENAME
                 runvalues["nbo_basefilename"] = line.split("=")[1].rstrip(" \n")
+            if "NEB_End_XYZFile" in line:
+                # NEB_End_XYZFile "NEB_end_file.xyz"
+                runvalues["xyz_files"].append(line.split()[1].strip('"'))
 
     return runvalues
 
@@ -379,6 +384,11 @@ def create_run_file(output, runvalues):
             "\n",
         ]
     )
+
+    if len(runvalues["xyz_files"]) > 0:
+        for xyz_file in runvalues["xyz_files"]:
+            out.append("cp " + xyz_file + "$ORCA_TMPDIR\n")
+        out.append("\n")
 
     # Launch the actual process
     out.extend(
