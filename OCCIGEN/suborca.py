@@ -363,7 +363,20 @@ def create_run_file(output, runvalues):
             "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
             "\n",
             "# Copy input file\n",
-            "cp -f " + shlexnames["inputfile"] + " $ORCA_TMPDIR\n\n",
+            "cp -f " + shlexnames["inputfile"] + " $ORCA_TMPDIR\n",
+            "\n",
+            "# Copy gbw file if it exists\n",
+            "if [ -f " + shlexnames["basename"] + ".gbw ] \n",
+            "then\n",
+            "  cp " + shlexnames["basename"] + ".gbw $ORCA_TMPDIR\n",
+            "fi\n",
+            "\n",
+            "# Copy hess file if it exists\n",
+            "if [ -f " + shlexnames["basename"] + ".hess ] \n",
+            "then\n",
+            "  cp " + shlexnames["basename"] + ".hess $ORCA_TMPDIR\n",
+            "fi\n",
+            "\n",
         ]
     )
 
@@ -410,10 +423,8 @@ def create_run_file(output, runvalues):
 
     out.extend(
         [
-            "# Move files back to original directory\n",
-            "cp " + shlexnames["basename"] + ".out $SLURM_SUBMIT_DIR\n",
-            "cp " + shlexnames["basename"] + ".gbw $SLURM_SUBMIT_DIR\n",
-            "cp " + shlexnames["basename"] + ".xyz $SLURM_SUBMIT_DIR\n",
+            "# Move all useful files to original directory\n",
+            "cp " + shlexnames["basename"] + ".* $SLURM_SUBMIT_DIR\n",
             "\n",
         ]
     )
