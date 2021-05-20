@@ -17,16 +17,16 @@ module load intel/17.2
 module load openmpi/intel/2.0.4
 
 # Gaussian
-module load gaussian/g16/C.01
+module load gaussian/G16/C.01
 
 # ADF
-module load adf/2019.102
+module load adf/2019.304
 
 # Python
 module load python/3.6.3
 
 # Orca
-export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_2_0-shared
+export ORCA_BIN_DIR=$SHAREDHOMEDIR/orca-4_2_1-shared
 export PATH=$PATH:$ORCA_BIN_DIR
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR
 
@@ -86,7 +86,7 @@ alias almostFinished="echo '************************************';
                      "
 alias finished="echo '************************************';
                 echo 'Finished Computations:' ;
-                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian finished ~/*
+                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian 'Computation finished' ~/*
                "
 
 alias nbtour="echo '************************************';
@@ -132,8 +132,10 @@ alias complet="username vectors warning lowFreq"
 
 alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C" -u $USER'
 
-alias watchLogs='watch tail -n10 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out'
+alias watchLogs='watch tail -n8 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out'
 # Better alternative, only a problem with quotes
 # alias watchLogs='watch "find $SCRATCHDIR -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
 
 alias watchQueue='watch "squeue -o '"'"'%.8i %.4P %.25j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
+
+alias retrieveLogs='cp ~/scratchGaussian/*/*.log ./'

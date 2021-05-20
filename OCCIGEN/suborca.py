@@ -5,7 +5,7 @@
 Submit script for Orca for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2019-01-10 by Emmanuel Nicolas
+Last Update 2021-03-18 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed and accessible
 """
@@ -181,6 +181,7 @@ def default_run_values():
             "memory",
             "nproc_in_input",
             "cluster_section",
+            "xyz_files",
         ]
     )
     runvalues["inputfile"] = ""
@@ -193,6 +194,7 @@ def default_run_values():
     runvalues["nbo"] = False
     runvalues["nbo_basefilename"] = ""
     runvalues["cluster_section"] = "HSW24"
+    runvalues["xyz_files"] = list()
     return runvalues
 
 
@@ -211,6 +213,9 @@ def get_values_from_input_file(input_file, runvalues):
             if "FILE=" in line:
                 # FILE=FILENAME
                 runvalues["nbo_basefilename"] = line.split("=")[1].rstrip(" \n")
+            if "NEB_End_XYZFile" in line:
+                # NEB_End_XYZFile "NEB_end_file.xyz"
+                runvalues["xyz_files"].append(line.split()[1].strip('"'))
 
     return runvalues
 
@@ -301,6 +306,7 @@ def create_run_file(output, runvalues):
         "#SBATCH --mail-type=ALL\n",
         "#SBATCH --mail-user=user@server.org\n",
         "#SBATCH --nodes=" + str(runvalues["nodes"]) + "\n",
+        '#SBATCH --ntasks-per-core=1\n',
         '#SBATCH --hint=nomultithread\n',
     ]
     if runvalues["nproc_in_input"]:
@@ -331,7 +337,8 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Compute actual cpu number\n",
-                "export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n",
+                "export NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n",
+                "export OMP_NUM_THREADS=$NCPU\n",
                 "\n",
             ]
         )
@@ -361,9 +368,27 @@ def create_run_file(output, runvalues):
             "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
             "\n",
             "# Copy input file\n",
-            "cp -f " + shlexnames["inputfile"] + " $ORCA_TMPDIR\n\n",
+            "cp -f " + shlexnames["inputfile"] + " $ORCA_TMPDIR\n",
+            "\n",
+            "# Copy gbw file if it exists\n",
+            "if [ -f " + shlexnames["basename"] + ".gbw ] \n",
+            "then\n",
+            "  cp " + shlexnames["basename"] + ".gbw $ORCA_TMPDIR\n",
+            "fi\n",
+            "\n",
+            "# Copy hess file if it exists\n",
+            "if [ -f " + shlexnames["basename"] + ".hess ] \n",
+            "then\n",
+            "  cp " + shlexnames["basename"] + ".hess $ORCA_TMPDIR\n",
+            "fi\n",
+            "\n",
         ]
     )
+
+    if len(runvalues["xyz_files"]) > 0:
+        for xyz_file in runvalues["xyz_files"]:
+            out.append("cp " + xyz_file + " $ORCA_TMPDIR\n")
+        out.append("\n")
 
     # Launch the actual process
     out.extend(
@@ -387,7 +412,7 @@ def create_run_file(output, runvalues):
         out.extend(
             [
                 "# Add nprocs directive to header of " + shlexnames["inputfile"] + "\n",
-                "sed -i '1s;^;%pal\\n  nprocs '$SLURM_JOB_CPUS_PER_NODE'\\nend\\n\\n;' "
+                "sed -i '1s;^;%pal\\n  nprocs '$NCPU'\\nend\\n\\n;' "
                 + shlexnames["inputfile"]
                 + "\n",
                 "\n",
@@ -408,10 +433,8 @@ def create_run_file(output, runvalues):
 
     out.extend(
         [
-            "# Move files back to original directory\n",
-            "cp " + shlexnames["basename"] + ".out $SLURM_SUBMIT_DIR\n",
-            "cp " + shlexnames["basename"] + ".gbw $SLURM_SUBMIT_DIR\n",
-            "cp " + shlexnames["basename"] + ".xyz $SLURM_SUBMIT_DIR\n",
+            "# Move all useful files to original directory\n",
+            "cp " + shlexnames["basename"] + ".* $SLURM_SUBMIT_DIR\n",
             "\n",
         ]
     )

@@ -5,7 +5,7 @@
 Submit script for Gaussian16 for Computing Clusters.
 
 Script adapted for Cines OCCIGEN cluster
-Last Update 2018-09-26 by Emmanuel Nicolas
+Last Update 2021-03-18 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -362,7 +362,7 @@ def gaussian_start_line(runvalues, input_file, output):
     start_line = ["# Start Gaussian\n", "timeout " + str(runtime) + " g16 "]
 
     if not runvalues["nproc_in_input"]:  # nproc line not in input
-        start_line.append('-c="0-$((${NCPU}-1))" ')
+        start_line.append('-c="0-$((${SLURM_JOB_CPUS_PER_NODE}-1))" ')
     if not runvalues["memory_in_input"]:  # memory line not in input
         start_line.append("-m=" + str(runvalues["gaussian_memory"]) + "MB ")
     start_line.append(input_file + " > " + output + ".log\n")
