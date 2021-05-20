@@ -5,24 +5,25 @@
 #
 
 # Safety conversion
-dos2unix *
+dos2unix ./*
 
 # Create directories
 mkdir -p ~/.local/bin
-mkdir -p $SCRATCHDIR/adf
-mkdir -p $SCRATCHDIR/gaussian/rwf
-mkdir -p $SCRATCHDIR/orca
+mkdir -p "$SCRATCHDIR"/adf
+mkdir -p "$SCRATCHDIR"/gaussian/rwf
+mkdir -p "$SCRATCHDIR"/orca
 
 # Create shortcuts for the scratch
-ln -sTf $SCRATCHDIR/adf ~/scratchADF
-ln -sTf $SCRATCHDIR/gaussian ~/scratchGaussian
-ln -sTf $SCRATCHDIR/orca ~/scratchOrca
+ln -sTf "$SCRATCHDIR" ~/scratch
+ln -sTf "$SCRATCHDIR"/adf ~/scratchADF
+ln -sTf "$SCRATCHDIR"/gaussian ~/scratchGaussian
+ln -sTf "$SCRATCHDIR"/orca ~/scratchOrca
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
-read mail
+read -r mail
 echo -n "Enter your first name and press [ENTER]: "
-read firstname
+read -r firstname
 
 # Copy files and change emails and firstnames when necessary
 sed -e "s/user@server.org/${mail}/" < forward > ~/.forward
@@ -30,12 +31,12 @@ sed -e "s/username/${firstname}/" < bash_profile > ~/.bash_profile
 cp -f bashrc ~/.bashrc
 cp -f emacs ~/.emacs
 sed -e "s/user@server.org/${mail}/" < subadf.py > ~/.local/bin/subadf.py
-sed -e "s/user@server.org/${mail}/" < subg09.py > ~/.local/bin/subg09.py
+sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
 sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
 
 # Change permissions
 chmod +x ~/.local/bin/subadf.py
-chmod +x ~/.local/bin/subg09.py
+chmod +x ~/.local/bin/subg16.py
 chmod +x ~/.local/bin/suborca.py
 
 echo "Your account was set up. You should log off and back on to make sure"
