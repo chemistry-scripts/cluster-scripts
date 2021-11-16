@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Entry point for submission of Gaussian16 calculations on Jean Zay
+Entry point for submission of Gaussian16 calculations on Irene
 
-Last Update 2020-03-17 by Emmanuel Nicolas
+Last Update 2021-11-16 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
