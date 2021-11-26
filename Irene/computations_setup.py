@@ -239,32 +239,27 @@ class Computation:
 
         out = [
             "#!/bin/bash\n",
-            "#SBATCH -J " + self.shlexnames["inputfile"] + "\n",
-            "#SBATCH --mail-type=ALL\n",
-            "#SBATCH --account=yck@cpu\n",
-            "#SBATCH --mail-user=user@server.org\n",
-            "#SBATCH --partition=cpu_p1\n",
-            "#SBATCH --nodes=1\n",
-            "#SBATCH --hint=nomultithread\n",
+            "#MSUB -q rome\n",  # TODO: switch according to actual partition (rome, skylake, knl)
+            "#MSUB -A gen12981\n",  # To update with account name if it changes.
+            "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
+            "#MSUB -N 1\n",
+            "#MSUB -m scratch,work\n",
+            "#MSUB -@ user@server.org:begin,end\n",
         ]
-        # Change qos if longer walltimes
-        walltime = [int(x) for x in self.runvalues["walltime"].split(":")]
-        if walltime[0] * 3600 + walltime[1] * 60 + walltime[2] > 72000:  # > 20h
-            out.extend(["#SBATCH --qos=qos_cpu-t4\n"])
-        else:
-            out.extend(["#SBATCH --qos=qos_cpu-t3\n"])
         if self.runvalues["nproc_in_input"]:
-            out.extend(["#SBATCH --ntasks=" + str(self.runvalues["cores"]) + "\n"])
+            out.extend(["#MSUB -n=" + str(self.runvalues["cores"]) + "\n"])
         else:
-            out.extend(["#SBATCH --ntasks=40\n"])
+            out.extend(["#MSUB -n=24\n"])
         out.extend(
             [
-                "#SBATCH --mem=" + str(self.runvalues["memory"]) + "\n",
-                "#SBATCH --time=" + self.runvalues["walltime"] + "\n",
-                "#SBATCH --output=" + self.shlexnames["basename"] + ".slurmout\n",
+                "#MSUB --mem=" + str(self.runvalues["memory"]) + "\n",
+                "#MSUB -T " + self.runvalues["walltime"] + "\n",
+                "#MSUB -e " + self.shlexnames["basename"] + ".slurmerr\n",
+                "#MSUB -o " + self.shlexnames["basename"] + ".slurmout\n",  # TODO: Merge out and err?
                 "\n",
             ]
         )
+
         if not self.runvalues["nproc_in_input"]:  # nproc line not in input
             out.extend(
                 [
@@ -272,47 +267,34 @@ class Computation:
                     "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
                 ]
             )
-        if self.__software == "g09":
+        if self.__software == "g16":
             out.extend(
                 [
                     "# Load Gaussian Module\n",
                     "module purge\n",
-                    "module load gaussian/g09-revD01\n",
+                    "module load gaussian/g16-C.01\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
-                    "export g09root='/gpfslocalsup/prod/g09/rev-C01/'\n",
-                    "source $g09root/g09/bsd/g09.profile\n",
+                    ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
                 ]
             )
-        elif self.__software == "g16":
-            out.extend(
-                [
-                    "# Load Gaussian Module\n",
-                    "module purge\n",
-                    "module load gaussian/g16-revC01\n",
-                    "\n",
-                    "# Setup Gaussian specific variables\n",
-                    "export g16root='/gpfslocalsup/prod/g16/rev-C01/'\n",
-                    "source $g16root/g16/bsd/g16.profile\n",
-                ]
-            )
-        if self.runvalues["nproc_in_input"]:
-            out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
-        else:
-            out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
-        if self.runvalues["nbo"]:
-            out.extend(
-                [
-                    "# Setup NBO6\n",
-                    "export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n",
-                    "export PATH=$PATH:$NBOBIN\n",
-                    "\n",
-                ]
-            )
+        # if self.runvalues["nproc_in_input"]:
+        #     out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
+        # else:
+        #     out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
+        # if self.runvalues["nbo"]:
+        #     out.extend(
+        #         [
+        #             "# Setup NBO6\n",
+        #             "export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n",
+        #             "export PATH=$PATH:$NBOBIN\n",
+        #             "\n",
+        #         ]
+        #     )
         out.extend(
             [
                 "# Setup Scratch\n",
-                "export GAUSS_SCRDIR=$SCRATCH/gaussian/$SLURM_JOB_ID\n",
+                "export GAUSS_SCRDIR=$CCCSCRATCHDIR/$BRIDGE_MSUB_JOBID\n",
                 "mkdir -p $GAUSS_SCRDIR\n",
                 "\n",
                 "# Copy input file\n",
@@ -360,11 +342,11 @@ class Computation:
                 "cd $GAUSS_SCRDIR\n",
                 "\n",
                 "# Print job info in output file\n",
-                'echo "job_id : $SLURM_JOB_ID"\n',
-                'echo "job_name : $SLURM_JOB_NAME"\n',
-                'echo "node_number : $SLURM_JOB_NUM_NODES nodes"\n',
-                'echo "core number : $SLURM_JOB_CPUS_PER_NODE cores"\n',
-                'echo "Node list : $SLURM_JOB_NODELIST"\n',
+                'echo "job_id : $BRIDGE_MSUB_JOBID"\n',
+                # 'echo "job_name : $SLURM_JOB_NAME"\n',
+                # 'echo "node_number : $SLURM_JOB_NUM_NODES nodes"\n',
+                # 'echo "core number : $SLURM_JOB_CPUS_PER_NODE cores"\n',
+                # 'echo "Node list : $SLURM_JOB_NODELIST"\n',
                 "\n",
             ]
         )
