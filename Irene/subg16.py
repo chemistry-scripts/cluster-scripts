@@ -102,7 +102,10 @@ def get_options():
     )
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument(
-        "-p", "--proc", type=int, help="Number of processors used for the computation",
+        "-p",
+        "--proc",
+        type=int,
+        help="Number of processors used for the computation",
     )
     parser.add_argument(
         "-n", "--nodes", type=int, help="Number of nodes used for the computation"

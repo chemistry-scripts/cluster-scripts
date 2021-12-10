@@ -239,10 +239,10 @@ class Computation:
 
         out = [
             "#!/bin/bash\n",
-            "#MSUB -q rome\n",  # TODO: switch according to actual partition (rome, skylake, knl)
+            "#MSUB -q skylake\n",  # TODO: switch according to actual partition (rome, skylake, knl)
             "#MSUB -A gen12981\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
-            "#MSUB -N 1\n",
+            "#MSUB -N 48\n",
             "#MSUB -m scratch,work\n",
             "#MSUB -@ user@server.org:begin,end\n",
         ]
@@ -250,12 +250,22 @@ class Computation:
             out.extend(["#MSUB -n=" + str(self.runvalues["cores"]) + "\n"])
         else:
             out.extend(["#MSUB -n=24\n"])
+
+        walltime_in_seconds = self.walltime_as_list()
+        walltime_in_seconds = (
+            3600 * walltime_in_seconds[0]
+            + 60 * walltime_in_seconds[1]
+            + walltime_in_seconds[2]
+        )
+
         out.extend(
             [
                 "#MSUB --mem=" + str(self.runvalues["memory"]) + "\n",
-                "#MSUB -T " + self.runvalues["walltime"] + "\n",
+                "#MSUB -T " + str(walltime_in_seconds) + "\n",
                 "#MSUB -e " + self.shlexnames["basename"] + ".slurmerr\n",
-                "#MSUB -o " + self.shlexnames["basename"] + ".slurmout\n",  # TODO: Merge out and err?
+                "#MSUB -o "
+                + self.shlexnames["basename"]
+                + ".slurmout\n",  # TODO: Merge out and err?
                 "\n",
             ]
         )
@@ -272,7 +282,8 @@ class Computation:
                 [
                     "# Load Gaussian Module\n",
                     "module purge\n",
-                    "module load gaussian/g16-C.01\n",
+                    "module switch dfldatadir/gen12981\n",
+                    "module load gaussian/16-C.01\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
@@ -389,7 +400,7 @@ class Computation:
             [
                 "# If Gaussian crashed or was stopped somehow, copy the rwf\n",
                 "for f in $GAUSS_SCRDIR/*rwf; do\n",
-                "    mkdir -p $SCRATCH/gaussian/rwf\n"
+                "    mkdir -p $CCCSCRATCHDIR/gaussian/rwf\n"
                 # Move rwf as JobName_123456.rwf to the rwf folder in scratch
                 '    [ -f "$f" ] && mv $f $SCRATCH/gaussian/rwf/'
                 + self.shlexnames["basename"]
