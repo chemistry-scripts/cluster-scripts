@@ -72,7 +72,7 @@ def main():
         print(" The corresponding .sh file already exists ")
         print("Make sure it is not a mistake, erase it and rerun the script")
         print("Alternatively, you can submit the job directly with:")
-        print("sbatch {0}".format(shlex.quote(script_file_name)))
+        print("ccc_msub {0}".format(shlex.quote(script_file_name)))
         sys.exit()
     # Avoid end of line problems due to conversion between Windows and Unix
     # file endings
@@ -87,7 +87,7 @@ def main():
     computation.create_run_file(script_file_name)
 
     # Submit the script
-    os.system("sbatch {0}".format(shlex.quote(script_file_name)))
+    os.system("ccc_msub {0}".format(shlex.quote(script_file_name)))
     print(
         "job {0} submitted with a walltime of {1} hours".format(
             input_file_name, computation.walltime
