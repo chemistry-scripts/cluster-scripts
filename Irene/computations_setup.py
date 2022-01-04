@@ -227,8 +227,6 @@ class Computation:
             - Run Gaussian16
             - Copy appropriate files back to $HOME
             - Cleanup scratch
-
-        Instructions adapted from www.cines.fr
         """
         # Setup logging
         logger = logging.getLogger()
@@ -239,7 +237,7 @@ class Computation:
 
         out = [
             "#!/bin/bash\n",
-            "#MSUB -q skylake\n",  # TODO: switch according to actual partition (rome, skylake, knl)
+            "#MSUB -q skylake\n",  # TODO: Remove queue selection after January 26th
             "#MSUB -A gen12981\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 48\n",
@@ -263,9 +261,8 @@ class Computation:
                 "#MSUB --mem=" + str(self.runvalues["memory"]) + "\n",
                 "#MSUB -T " + str(walltime_in_seconds) + "\n",
                 "#MSUB -e " + self.shlexnames["basename"] + ".slurmerr\n",
-                "#MSUB -o "
-                + self.shlexnames["basename"]
-                + ".slurmout\n",  # TODO: Merge out and err?
+                "#MSUB -o " + self.shlexnames["basename"] + ".slurmout\n",
+                # TODO: Merge out and err?
                 "\n",
             ]
         )
