@@ -248,13 +248,8 @@ def get_values_from_input_file(input_file, runvalues):
 def fill_missing_values(runvalues):
     """Compute and fill all missing values."""
     # Setup cluster_section according to number of cores
-    if not runvalues["nproc_in_input"]:
-        runvalues["cluster_section"] = "HSW24|BDW28"
-    elif runvalues["cores"] <= 24:
-        runvalues["cluster_section"] = "HSW24"
-    elif runvalues["cores"] <= 28:
-        runvalues["cluster_section"] = "BDW28"
-    elif runvalues["cores"] > 28 and runvalues["nodes"] == 1:
+    runvalues["cluster_section"] = "BDW28"
+    if runvalues["cores"] > 28 and runvalues["nodes"] == 1:
         raise ValueError("Number of cores cannot exceed 28 for one node.")
     elif runvalues["nodes"] > 1:
         raise ValueError("Multiple nodes not supported at the moment.")
