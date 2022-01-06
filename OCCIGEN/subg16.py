@@ -35,7 +35,7 @@ def main():
     - Compute missing values
         - Memory
         - Number of nodes if appropriate
-        - Cluster section (HSW24/BDW28)
+        - Cluster section (BDW28)
         - Convert filenames to printable values
     - Check parameters
         - Existence of files (or non-existence...)
@@ -194,7 +194,7 @@ def default_run_values():
     runvalues["inputfile"] = ""
     runvalues["outputfile"] = ""
     runvalues["nodes"] = 1
-    runvalues["cores"] = ""
+    runvalues["cores"] = 28
     runvalues["walltime"] = "24:00:00"
     runvalues["memory"] = 4000  # In MB
     runvalues["gaussian_memory"] = 1000  # in MB
@@ -205,7 +205,7 @@ def default_run_values():
     runvalues["memory_in_input"] = False
     runvalues["nbo"] = False
     runvalues["nbo_basefilename"] = ""
-    runvalues["cluster_section"] = "HSW24"
+    runvalues["cluster_section"] = "BDW28"
     return runvalues
 
 
@@ -249,12 +249,12 @@ def fill_missing_values(runvalues):
     """Compute and fill all missing values."""
     # Setup cluster_section according to number of cores
     runvalues["cluster_section"] = "BDW28"
+    if runvalues["cores"] < 24:
+        runvalues["cluster_section"] = "shared"
     if runvalues["cores"] > 28 and runvalues["nodes"] == 1:
         raise ValueError("Number of cores cannot exceed 28 for one node.")
     elif runvalues["nodes"] > 1:
         raise ValueError("Multiple nodes not supported at the moment.")
-
-    # TODO: manage the multiple nodes case
 
     memory, gaussian_memory = compute_memory(runvalues)
     runvalues["memory"] = memory
@@ -301,38 +301,25 @@ def compute_memory(runvalues):
 
         # Now switch according to nproc value
         if runvalues["nproc_in_input"]:
-            if 24 < runvalues["cores"] <= 28:
+            if runvalues["cores"] == 28:
                 # Broadwell partition
                 memory = 59000
-            elif runvalues["cores"] == 24:
-                # Haswell, but full partition
-                if gaussian_memory < 53000:
-                    # Allow run on 64GB nodes
-                    memory = 59000
-                else:
-                    # Force 128GB nodes
-                    memory = 118000
             elif runvalues["cores"] < 24:
                 # We are on shared nodes
                 # Choose max from 4830 MB per core, or defined memory + 4GB overhead
                 memory = max(runvalues["cores"] * 4830, gaussian_memory + 4096)
-        else:
-            # nproc undefined, assume single node and choose simply between 64GB and 128GB nodes
-            if gaussian_memory < 53000:
-                # Allow run on 64GB nodes
-                memory = 59000
             else:
-                # Force 128GB nodes
-                memory = 118000
+                raise ValueError(
+                    "The number of cores is not compatible with the current Occigen configuration"
+                )
+        else:
+            # nproc undefined, assume single node and set to 64GB nodes
+            memory = 59000
     else:
         # Memory not input, compute everything according to number of cores
         if runvalues["nproc_in_input"]:
-            if 24 < runvalues["cores"] <= 28:
+            if runvalues["cores"] == 28:
                 # Broadwell partition
-                gaussian_memory = 53000
-                memory = 59000
-            elif runvalues["cores"] == 24:
-                # Haswell, partition, allow 64GB
                 gaussian_memory = 53000
                 memory = 59000
             elif runvalues["cores"] < 24:
@@ -340,8 +327,12 @@ def compute_memory(runvalues):
                 # 4830 MB per core, remove 4GB overhead for Gaussian
                 memory = runvalues["cores"] * 4830
                 gaussian_memory = memory - 4096
+            else:
+                raise ValueError(
+                    "The number of cores is not compatible with the current Occigen configuration"
+                )
         else:
-            # nproc undefined, assume single 64GB node
+            # nproc undefined, single 64GB node
             gaussian_memory = 53000
             memory = 59000
 
@@ -386,21 +377,20 @@ def create_run_file(output, runvalues):
     logger.debug("Runvalues:  %s", runvalues)
     logger.debug("Shlexnames: %s", shlexnames)
 
-    # TODO: multi-nodes
-    # On SLURM, memory is defined per node
-    # #SBATCH --nodes=2
-    # #SBATCH --ntasks=48
-    # #SBATCH --ntasks-per-node=24
-    # #SBATCH --threads-per-core=1
     out = [
         "#!/bin/bash\n",
         "#SBATCH -J " + shlexnames["inputfile"] + "\n",
-        "#SBATCH --constraint=" + runvalues["cluster_section"] + "\n"
-        "#SBATCH --mail-type=ALL\n",
-        "#SBATCH --mail-user=user@server.org\n",
-        "#SBATCH --nodes=1\n",
-        '#SBATCH --hint=nomultithread\n',
     ]
+    if runvalues["cluster_section"] != "shared":
+        out.append("#SBATCH --constraint=" + runvalues["cluster_section"] + "\n")
+    out.extend(
+        [
+            "#SBATCH --mail-type=ALL\n",
+            "#SBATCH --mail-user=user@server.org\n",
+            "#SBATCH --nodes=1\n",
+            "#SBATCH --hint=nomultithread\n",
+        ]
+    )
     if runvalues["nproc_in_input"]:
         out.extend(["#SBATCH --ntasks=" + str(runvalues["cores"]) + "\n"])
     out.extend(
@@ -420,7 +410,8 @@ def create_run_file(output, runvalues):
             "# Setup Gaussian specific variables\n",
             "export g16root\n",
             "source $g16root/g16/bsd/g16.profile\n",
-            "export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"
+            "export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n",
+            "\n",
         ]
     )
     if runvalues["nbo"]:
@@ -562,7 +553,7 @@ def help_epilog():
     return """
 Defaults values:
   Default memory:          54GB
-  Default cores:           24
+  Default cores:           28
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
