@@ -1,0 +1,129 @@
+# ~/.bash_profile: executed by bash(1) for login shells.
+# see /usr/share/doc/bash/examples/startup-files for examples.
+# the files are located in the bash-doc package.
+
+# the default umask is set in /etc/login.defs
+#umask 022
+
+# include .bashrc if it exists
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+
+#===============================================================
+# ==== Load Modules
+# Gaussian
+module load gaussian/g16-revC01
+export g16root='/gpfslocalsup/prod/g16/rev-C01/'
+source $g16root/g16/bsd/g16.profile
+
+# ADF
+module load adf/2019.104-mpi-cuda
+
+# Python
+module load python/3.7.5
+
+#===============================================================
+# Define some colors first:
+red='\e[0;31m'
+RED='\e[1;31m'
+blue='\e[0;34m'
+BLUE='\e[1;34m'
+cyan='\e[0;36m'
+CYAN='\e[1;36m'
+NC='\e[0m'              # No Color
+# --> Nice. Has the same effect as using "ansi.sys" in DOS.
+
+#-------------------
+# Personnal Aliases
+#-------------------
+
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+# -> Prevents accidentally clobbering files.
+alias mkdir='mkdir -p'
+
+alias h='history'
+alias j='jobs -l'
+alias r='rlogin'
+alias which='type -all'
+alias ..='cd ..'
+alias path='echo -e ${PATH//:/\\n}'
+alias du='du -kh'
+alias df='df -kTh'
+
+# The 'ls' family (this assumes you use the GNU ls)
+alias la='ls -Al'           # show hidden files
+alias ls='ls -hF --color'	# add colors for filetype recognition
+alias ll='ls -l'            # list files
+alias lx='ls -lXB'          # sort by extension
+alias lk='ls -lSr'          # sort by size
+alias lc='ls -lcr'          # sort by change time
+alias lu='ls -lur'          # sort by access time
+alias lr='ls -lR'           # recursive ls
+alias lt='ls -ltr'          # sort by date
+alias lm='ls -al |more'     # pipe through 'more'
+alias tree='tree -Csu'      # nice alternative to 'ls'
+
+# emacs in no-window mode
+alias emacs="emacs -nw"
+
+# User specific aliases and functions
+alias almostFinished="echo '************************************';
+                      echo 'Finished Steps:' ;
+                      grep -r --include '*.log' 'cpu time' $SCRATCH/gaussian
+                     "
+alias finished="echo '************************************';
+                echo 'Finished Computations:' ;
+                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian finished ~/*
+               "
+
+alias nbtour="echo '************************************';
+              echo 'Nombre de Tours :' ;
+              grep -r --include '*.log' -c Predicted $SCRATCH/gaussian
+             "
+
+alias count="echo '************************************';
+             echo 'Number of YESs:' ;
+             grep -r --include '*.log' -c YES $SCRATCH/gaussian
+            "
+
+alias encours="echo '************************************';
+               echo 'Running Computations: ' ;
+               squeue -o '%.8i %.9P %.20j %.8T %.9M %.5D %.16R %.16S %.8c %.4C' -u $USER ;
+               echo '************************************';
+               echo 'Total Number of Computations:' ;
+               squeue -u $USER | grep $USER -c
+              "
+
+alias lowFreq="echo '************************************';
+               echo 'Three Lowest Frequencies: ' ;
+               echo '************************************';
+               grep -r --include '*.log' -A6 Harmonic ~/*
+              "
+
+alias vectors="echo '************************************';
+               echo 'Computed Vectors:';
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $SCRATCH/gaussian | sed 's/\(produced\).*/\1/g'
+              "
+
+alias warning="echo '************************************';
+               echo 'Warning Produced: ' ;
+               grep -r --include '*.log' Warning $SCRATCH/gaussian
+               grep -r --include '*.log' --exclude-dir=scratchGaussian Warning ~/*
+              "
+
+alias predictions="find $SCRATCH/gaussian -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+
+alias username="encours nbtour count almostFinished finished"
+
+alias complet="username vectors warning lowFreq"
+
+alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C" -u $USER'
+
+alias watchLogs='watch tail -n10 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out'
+# Better alternative, only a problem with quotes
+# alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
+
+alias watchQueue='watch "squeue -o '"'"'%.8i %.4P %.25j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
