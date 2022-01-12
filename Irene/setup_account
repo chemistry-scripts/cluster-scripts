@@ -9,14 +9,12 @@
 
 # Create directories
 mkdir -p ~/.local/bin
-mkdir -p $SCRATCH/adf
-mkdir -p $SCRATCH/gaussian/rwf
-mkdir -p $SCRATCH/orca
+mkdir -p $CCCSCRATCHDIR/gaussian/rwf
+mkdir -p $CCCSCRATCHDIR/orca
 
 # Create shortcuts for the scratch
-ln -sTf $SCRATCH/adf ~/scratchADF
-ln -sTf $SCRATCH/gaussian ~/scratchGaussian
-ln -sTf $SCRATCH/orca ~/scratchOrca
+ln -sTf $CCCSCRATCHDIR/gaussian ~/scratchGaussian
+ln -sTf $CCCSCRATCHDIR/orca ~/scratchOrca
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
@@ -30,18 +28,14 @@ sed -e "s/username/${firstname}/" < bash_profile > ~/.bash_profile
 cp -f bashrc ~/.bashrc
 cp -f emacs ~/.emacs
 cp -f __init__.py ~/.local/bin/__init__.py
-sed -e "s/user@server.org/${mail}/" < subg09.py > ~/.local/bin/subg09.py
 sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
 sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
-# sed -e "s/user@server.org/${mail}/" < subadf.py > ~/.local/bin/subadf.py
 # sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
 
 # Change permissions
 chmod +x ~/.local/bin/__init__.py
-chmod +x ~/.local/bin/subg09.py
 chmod +x ~/.local/bin/subg16.py
 chmod +x ~/.local/bin/computations_setup.py
-# chmod +x ~/.local/bin/subadf.py
 # chmod +x ~/.local/bin/suborca.py
 
 echo "Your account was set up. You should log off and back on to make sure"

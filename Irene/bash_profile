@@ -12,16 +12,16 @@ fi
 
 #===============================================================
 # ==== Load Modules
-# Gaussian
-module load gaussian/g16-revC01
-export g16root='/gpfslocalsup/prod/g16/rev-C01/'
-source $g16root/g16/bsd/g16.profile
+module purge
 
-# ADF
-module load adf/2019.104-mpi-cuda
+# Switch datadir (for proper directories settings)
+module switch dfldatadir/gen12981
+# Gaussian
+module load gaussian/16-C.01
+. $GAUSSIAN_ROOT/g16/bsd/g16.profile
 
 # Python
-module load python/3.7.5
+module load python3/3.7.5
 
 #===============================================================
 # Define some colors first:
@@ -72,7 +72,7 @@ alias emacs="emacs -nw"
 # User specific aliases and functions
 alias almostFinished="echo '************************************';
                       echo 'Finished Steps:' ;
-                      grep -r --include '*.log' 'cpu time' $SCRATCH/gaussian
+                      grep -r --include '*.log' 'cpu time' $CCCSCRATCHDIR/gaussian
                      "
 alias finished="echo '************************************';
                 echo 'Finished Computations:' ;
@@ -81,12 +81,12 @@ alias finished="echo '************************************';
 
 alias nbtour="echo '************************************';
               echo 'Nombre de Tours :' ;
-              grep -r --include '*.log' -c Predicted $SCRATCH/gaussian
+              grep -r --include '*.log' -c Predicted $CCCSCRATCHDIR/gaussian
              "
 
 alias count="echo '************************************';
              echo 'Number of YESs:' ;
-             grep -r --include '*.log' -c YES $SCRATCH/gaussian
+             grep -r --include '*.log' -c YES $CCCSCRATCHDIR/gaussian
             "
 
 alias encours="echo '************************************';
@@ -105,16 +105,16 @@ alias lowFreq="echo '************************************';
 
 alias vectors="echo '************************************';
                echo 'Computed Vectors:';
-               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $SCRATCH/gaussian | sed 's/\(produced\).*/\1/g'
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $CCCSCRATCHDIR/gaussian | sed 's/\(produced\).*/\1/g'
               "
 
 alias warning="echo '************************************';
                echo 'Warning Produced: ' ;
-               grep -r --include '*.log' Warning $SCRATCH/gaussian
+               grep -r --include '*.log' Warning $CCCSCRATCHDIR/gaussian
                grep -r --include '*.log' --exclude-dir=scratchGaussian Warning ~/*
               "
 
-alias predictions="find $SCRATCH/gaussian -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+alias predictions="find $CCCSCRATCHDIR/gaussian -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
 
 alias username="encours nbtour count almostFinished finished"
 
