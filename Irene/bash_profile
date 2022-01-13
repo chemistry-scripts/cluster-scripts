@@ -106,10 +106,10 @@ alias count="echo '************************************';
 
 alias encours="echo '************************************';
                echo 'Running Computations: ' ;
-               squeue -o '%.8i %.9P %.20j %.8T %.9M %.5D %.16R %.16S %.8c %.4C' -u $USER ;
+               ccc_mpp -u $USER ;
                echo '************************************';
                echo 'Total Number of Computations:' ;
-               squeue -u $USER | grep $USER -c
+               ccc_mpp -u $USER | grep $USER -c
               "
 
 alias lowFreq="echo '************************************';
@@ -135,10 +135,10 @@ alias username="encours nbtour count almostFinished finished"
 
 alias complet="username vectors warning lowFreq"
 
-alias queue='squeue -o "%.8i %.9P %.20j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C" -u $USER'
+alias queue='ccc_mpp -u $USER'
 
 alias watchLogs='watch tail -n10 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out'
 # Better alternative, only a problem with quotes
 # alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
 
-alias watchQueue='watch "squeue -o '"'"'%.8i %.4P %.25j %.8T %.9M %.12l %.5D %.16R %.16S %.8c %.4C'"'"' -u \$USER"'
+alias watchQueue='watch --color "ccc_mpp -u $USER"'
