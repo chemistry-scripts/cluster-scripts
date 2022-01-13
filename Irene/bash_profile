@@ -16,6 +16,14 @@ module purge
 
 # Switch datadir (for proper directories settings)
 module switch dfldatadir/gen12981
+
+# Libraries for OptNPath
+module load fortran/intel/20.0.0
+module load mkl/20.0.0
+
+# Libraries for Orca
+module load mpi/openmpi/4.1.1
+
 # Gaussian
 module load gaussian/16-C.01
 . $GAUSSIAN_ROOT/g16/bsd/g16.profile
