@@ -302,7 +302,7 @@ class Computation:
         out.extend(
             [
                 "# Setup Scratch\n",
-                "export GAUSS_SCRDIR=$CCCSCRATCHDIR/$BRIDGE_MSUB_JOBID\n",
+                "export GAUSS_SCRDIR=$CCCSCRATCHDIR/gaussian/$BRIDGE_MSUB_JOBID\n",
                 "mkdir -p $GAUSS_SCRDIR\n",
                 "\n",
                 "# Copy input file\n",
