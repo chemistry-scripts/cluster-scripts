@@ -240,14 +240,14 @@ class Computation:
             "#MSUB -q skylake\n",  # TODO: Remove queue selection after January 26th
             "#MSUB -A gen12981\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
-            "#MSUB -N 48\n",
+            "#MSUB -N 1\n",
             "#MSUB -m scratch,work\n",
             "#MSUB -@ user@server.org:begin,end\n",
         ]
         if self.runvalues["nproc_in_input"]:
             out.extend(["#MSUB -n=" + str(self.runvalues["cores"]) + "\n"])
         else:
-            out.extend(["#MSUB -n=24\n"])
+            out.extend(["#MSUB -n=48\n"])
 
         walltime_in_seconds = self.walltime_as_list()
         walltime_in_seconds = (

@@ -113,7 +113,7 @@ def get_options():
     parser.add_argument(
         "-t",
         "--walltime",
-        default="20:00:00",
+        default="24:00:00",
         type=str,
         help="Maximum time allowed for the computation",
     )
@@ -148,7 +148,7 @@ def get_options():
 def help_description():
     """Return description of program for help message."""
     return """
-Setup and submit a job to the SLURM queueing system on the OCCIGEN cluster.
+Setup and submit a job to the SLURM queueing system on Irene cluster.
 The job script name should end with .gjf or .com.
 """
 
@@ -157,15 +157,12 @@ def help_epilog():
     """Return additional help message."""
     return """
 Defaults values:
-  Default memory:          54GB
-  Default cores:           24
+  Default memory:          GB
+  Default cores:           48
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
 but are overridden if command line arguments are provided.
-
-When using shared nodes (less than 24 cores), the default memory is 4GB per
-core.
 """
 
 
