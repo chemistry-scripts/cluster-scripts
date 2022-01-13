@@ -245,9 +245,9 @@ class Computation:
             "#MSUB -@ user@server.org:begin,end\n",
         ]
         if self.runvalues["nproc_in_input"]:
-            out.extend(["#MSUB -n=" + str(self.runvalues["cores"]) + "\n"])
+            out.extend(["#MSUB -n " + str(self.runvalues["cores"]) + "\n"])
         else:
-            out.extend(["#MSUB -n=48\n"])
+            out.extend(["#MSUB -n 48\n"])
 
         walltime_in_seconds = self.walltime_as_list()
         walltime_in_seconds = (
