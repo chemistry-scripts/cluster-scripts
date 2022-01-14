@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
 # ##################################################
-# Setup account for easier computing on Jean Zay cluster
+# Setup account for easier computing on Irene cluster
 #
 
 # Safety conversion
 # dos2unix *
+
+# Switch module to make sure Scratch is available
+module switch dfldatadir/gen12981
 
 # Create directories
 mkdir -p ~/.local/bin

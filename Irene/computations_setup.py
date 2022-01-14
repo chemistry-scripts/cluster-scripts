@@ -4,7 +4,7 @@
 """
 Helper functions to set up theoretical chemistry computations on computing clusters.
 
-Last Update 2020-03-17 by Emmanuel Nicolas
+Last Update 2022-01-14 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
