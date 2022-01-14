@@ -13,11 +13,12 @@ import os
 import shlex
 import logging
 import re
+from math import ceil
 
 
 class Computation:
     """
-    Class representing the computation that will be ran.
+    Class representing the computation that will be run.
     """
 
     def __init__(self, input_file, software, cmdline_args):
@@ -28,6 +29,7 @@ class Computation:
         self.__software = software
         self.__runvalues = self.default_run_values()
         self.fill_from_commandline(cmdline_args)
+        self.get_values_from_gaussian_input_file()
         self.fill_missing_values()
         self.shlexnames = self.create_shlexnames()
 
@@ -90,7 +92,7 @@ class Computation:
         runvalues["outputfile"] = ""
         runvalues["nodes"] = 1
         runvalues["cores"] = ""
-        runvalues["walltime"] = "20:00:00"
+        runvalues["walltime"] = "24:00:00"
         runvalues["memory"] = 4000  # In MB
         runvalues["gaussian_memory"] = 1000  # in MB
         runvalues["chk"] = set()
@@ -106,7 +108,7 @@ class Computation:
     def get_values_from_gaussian_input_file(self):
         """Get core/memory values from input file, reading the Mem and NProcShared parameters."""
         with open(self.input_file, "r") as file:
-            # Go through lines and test if they are containing nproc, mem, etc. related
+            # Go through lines and test if they contain nproc, mem, etc. related
             # directives.
             for line in file.readlines():
                 if "%nproc" in line.lower():
@@ -142,28 +144,24 @@ class Computation:
 
     def fill_missing_values(self):
         """Compute and fill all missing values."""
-        # Setup cluster_section according to number of cores
-        if not self.runvalues["nproc_in_input"]:
-            self.runvalues["cluster_section"] = "HSW24|BDW28"
-        elif self.runvalues["cores"] <= 24:
-            self.runvalues["cluster_section"] = "HSW24"
-        elif self.runvalues["cores"] <= 28:
-            self.runvalues["cluster_section"] = "BDW28"
-        elif self.runvalues["cores"] > 28 and self.runvalues["nodes"] == 1:
-            raise ValueError("Number of cores cannot exceed 28 for one node.")
-        elif self.runvalues["nodes"] > 1:
+        # Check node number
+        if self.runvalues["nodes"] > 1:
             raise ValueError(
                 "Multiple nodes not supported on this cluster for gaussian."
             )
+        if self.runvalues["nproc_in_input"] and self.runvalues["cores"] > 48:
+            raise ValueError("Number of cores cannot exceed 48 for one node.")
 
         memory, gaussian_memory = self.compute_memory()
         self.runvalues["memory"] = memory
         self.runvalues["gaussian_memory"] = gaussian_memory
 
+        print(self.runvalues)
+
         if memory - gaussian_memory < 6000:
             # Too little overhead
             raise ValueError("Too much memory required for Gaussian to run properly")
-        if gaussian_memory > 160000:
+        if gaussian_memory > 180000:
             # Too much memory
             raise ValueError("Exceeded max allowed memory")
 
@@ -197,18 +195,33 @@ class Computation:
 
     def compute_memory(self):
         """
-        Return ideal memory value for Jean Zay.
+        Return ideal memory value for Irene.
 
-        160GB available per core : remove 6 Gb for overhead.
+        3.75GB per core, 180GB max, Remove 6GB for system.
         """
-        memory = 160000
-        gaussian_memory = 0
-
         if self.runvalues["memory_in_input"]:
             # Memory defined in input file
             gaussian_memory = self.runvalues["gaussian_memory"]
+            if self.runvalues["nproc_in_input"]:
+                # Cores also defined in input file: We adjust the number of core requirement so that the memory
+                # required is allocated
+                if gaussian_memory / self.runvalues["cores"] > 3750:
+                    self.runvalues["cores"] = ceil(float(gaussian_memory) / 3750)
+                    memory = 3750 * self.runvalues["cores"]
+                else:
+                    memory = 3750 * self.runvalues["cores"]
+            else:
+                memory = gaussian_memory + 6000
         else:
-            gaussian_memory = 140000
+            # Memory not defined in input
+            if self.runvalues["nproc_in_input"]:
+                # NProc defined in input, give 3.75 GB per core, remove overhead, min of 2GB if one core.
+                memory = 3750 * self.runvalues["cores"]
+                gaussian_memory = max(memory - 6000, 2000)
+            else:
+                # All memory is available, give Gaussian 170GB to run.
+                memory = 180000
+                gaussian_memory = 170000
 
         return memory, gaussian_memory
 
@@ -258,7 +271,6 @@ class Computation:
 
         out.extend(
             [
-                "#MSUB --mem=" + str(self.runvalues["memory"]) + "\n",
                 "#MSUB -T " + str(walltime_in_seconds) + "\n",
                 "#MSUB -e " + self.shlexnames["basename"] + ".slurmerr\n",
                 "#MSUB -o " + self.shlexnames["basename"] + ".slurmout\n",
@@ -286,15 +298,17 @@ class Computation:
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
                 ]
             )
-        # if self.runvalues["nproc_in_input"]:
-        #     out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
-        # else:
-        #     out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
+        if self.runvalues["nproc_in_input"]:
+            out.extend(
+                ["export OMP_NUM_THREADS=", str(self.runvalues["cores"]), "\n", "\n"]
+            )
+        else:
+            out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
         # if self.runvalues["nbo"]:
         #     out.extend(
         #         [
         #             "# Setup NBO6\n",
-        #             "export NBOBIN=$SHAREDHOMEDIR/nbo6/bin\n",
+        #             "export NBOBIN=$CCC_ALL_CCCWORKDIR/nbo6/bin\n",
         #             "export PATH=$PATH:$NBOBIN\n",
         #             "\n",
         #         ]
@@ -429,7 +443,7 @@ class Computation:
 
         # Manage processors
         if not self.runvalues["nproc_in_input"]:
-            # nproc line not in input, set proc number as command-line argument
+            # nproc line not in input, set proc number as a command-line argument
             start_line += '-c="0-$(($NCPU-1))" '
         if not self.runvalues["memory_in_input"]:
             # memory line not in input, set it as command-line argument
@@ -439,6 +453,6 @@ class Computation:
         start_line += "< " + self.shlexnames["inputfile"]
 
         # Add output file
-        start_line += " >" + self.shlexnames["basename"] + ".log\n"
+        start_line += " > " + self.shlexnames["basename"] + ".log\n"
 
         return start_line
