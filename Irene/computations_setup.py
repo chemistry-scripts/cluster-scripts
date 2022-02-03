@@ -284,16 +284,33 @@ class Computation:
                     "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
                 ]
             )
+        out.extend(
+            [
+                "# Load Modules\n",
+                "module purge\n",
+                "module switch dfldatadir/gen12981\n",
+            ]
+        )
         if self.__software == "g16":
             out.extend(
                 [
-                    "# Load Gaussian Module\n",
-                    "module purge\n",
-                    "module switch dfldatadir/gen12981\n",
                     "module load gaussian/16-C.01\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
+                    "\n",
+                ]
+            )
+        elif self.__software == "orca":
+            out.extend(
+                [
+                    "module load mpi/openmpi/4.1.1\n",
+                    "\n",
+                    "# Setup Orca specific variables\n",
+                    "export ORCA_BIN_DIR=$GEN12981_ALL_CCCWORKDIR/orca\n",
+                    "export PATH=$PATH:$ORCA_BIN_DIR\n",
+                    "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
+                    "\n",
                 ]
             )
         if self.runvalues["nproc_in_input"]:
@@ -314,11 +331,11 @@ class Computation:
         out.extend(
             [
                 "# Setup Scratch\n",
-                "export GAUSS_SCRDIR=$CCCSCRATCHDIR/gaussian/$BRIDGE_MSUB_JOBID\n",
-                "mkdir -p $GAUSS_SCRDIR\n",
+                "export SCRATCHDIR=$CCCSCRATCHDIR/$BRIDGE_MSUB_JOBID\n",
+                "mkdir -p $SCRATCHDIR\n",
                 "\n",
                 "# Copy input file\n",
-                "cp -f " + self.shlexnames["inputfile"] + " $GAUSS_SCRDIR\n\n",
+                "cp -f " + self.shlexnames["inputfile"] + " $SCRATCHDIR\n\n",
             ]
         )
         # If chk file is defined in input and exists, copy it in scratch
@@ -329,7 +346,7 @@ class Computation:
                     [
                         "if [ -f " + chk + " ] \n",
                         "then\n",
-                        "  cp " + chk + " $GAUSS_SCRDIR\n",
+                        "  cp " + chk + " $SCRATCHDIR\n",
                         "fi\n\n",
                     ]
                 )
@@ -341,7 +358,7 @@ class Computation:
                     [
                         "if [ -f " + oldchk + " ] \n",
                         "then\n",
-                        "  cp " + oldchk + " $GAUSS_SCRDIR\n",
+                        "  cp " + oldchk + " $SCRATCHDIR\n",
                         "fi\n\n",
                     ]
                 )
@@ -353,13 +370,26 @@ class Computation:
                     [
                         "if [ -f " + rwf + " ] \n",
                         "then\n",
-                        "  cp " + rwf + " $GAUSS_SCRDIR\n",
+                        "  cp " + rwf + " $SCRATCHDIR\n",
                         "fi\n\n",
                     ]
                 )
+        # TODO: Copy files for Orca
+        # if self.runvalues["xxx"] != set():
+        #     out.extend("# Copy xxx file in scratch if it exists\n")
+        #     for xxx in self.shlexnames["xxx"]:
+        #         out.extend(
+        #             [
+        #                 "if [ -f " + xxx + " ] \n",
+        #                 "then\n",
+        #                 "  cp " + xxx + " $SCRATCHDIR\n",
+        #                 "fi\n\n",
+        #             ]
+        #         )
+
         out.extend(
             [
-                "cd $GAUSS_SCRDIR\n",
+                "cd $SCRATCHDIR\n",
                 "\n",
                 "# Print job info in output file\n",
                 'echo "job_id : $BRIDGE_MSUB_JOBID"\n',
@@ -372,57 +402,66 @@ class Computation:
         )
 
         # Build and add Gaussian starting line
-        out.extend(["# Start Gaussian\n"])
-        gaussian_start_line = self.gaussian_start_line()
-        out.extend(gaussian_start_line)
+        out.extend(["# Start " + self.__software + "\n"])
+        if self.__software == "g16":
+            out.extend(self.gaussian_start_line())
+        elif self.__software == "orca":
+            out.extend(self.orca_start_line())
 
-        out.extend(
-            [
-                "# Move files back to original directory\n",
-                "cp " + self.shlexnames["basename"] + ".log $SLURM_SUBMIT_DIR\n",
-                "\n",
-            ]
-        )
-        out.extend(
-            [
-                "# If chk file exists, create fchk and copy everything\n",
-                "for f in $GAUSS_SCRDIR/*.chk; do\n",
-                '    [ -f "$f" ] && formchk $f\n',
-                "done\n",
-                "\n",
-                "for f in $GAUSS_SCRDIR/*chk; do\n",
-                '    [ -f "$f" ] && cp $f $SLURM_SUBMIT_DIR\n',
-                "done\n",
-                "\n",
-            ]
-        )
+        out.append("# Move files back to original directory\n")
+
+        if self.__software == "g16":
+            out.extend(
+                [
+                    "cp " + self.shlexnames["basename"] + ".log $SLURM_SUBMIT_DIR\n",
+                    "\n",
+                    "# If chk file exists, create fchk and copy everything\n",
+                    "for f in $SCRATCHDIR/*.chk; do\n",
+                    '    [ -f "$f" ] && formchk $f\n',
+                    "done\n",
+                    "\n",
+                    "for f in $SCRATCHDIR/*chk; do\n",
+                    '    [ -f "$f" ] && cp $f $SLURM_SUBMIT_DIR\n',
+                    "done\n",
+                    "\n",
+                ]
+            )
+            out.extend(
+                [
+                    "# If Gaussian crashed or was stopped somehow, copy the rwf\n",
+                    "for f in $SCRATCHDIR/*rwf; do\n",
+                    "    mkdir -p $CCCSCRATCHDIR/gaussian/rwf\n"
+                    # Move rwf as JobName_123456.rwf to the rwf folder in scratch
+                    '    [ -f "$f" ] && mv $f $SCRATCH/gaussian/rwf/'
+                    + self.shlexnames["basename"]
+                    + "_$SLURM_JOB_ID.rwf\n",
+                    "done\n",
+                ]
+            )
+        elif self.__software == "orca":
+            out.extend(
+                [
+                    "# Copy everything starting with the basename. Maybe a bit to crude."
+                    "cp " + self.shlexnames["basename"] + "* $SLURM_SUBMIT_DIR\n",
+                    "\n"
+                ]
+            )
         if self.runvalues["nbo"]:
             out.extend(
                 [
                     "# Retrieve NBO Files\n",
                     "cp " + self.runvalues["nbo_basefilename"] + ".*"
-                    " $SLURM_SUBMIT_DIR\n"
-                    "\n",
+                                                                 " $SLURM_SUBMIT_DIR\n"
+                                                                 "\n",
                 ]
             )
         out.extend(
-            [
-                "# If Gaussian crashed or was stopped somehow, copy the rwf\n",
-                "for f in $GAUSS_SCRDIR/*rwf; do\n",
-                "    mkdir -p $CCCSCRATCHDIR/gaussian/rwf\n"
-                # Move rwf as JobName_123456.rwf to the rwf folder in scratch
-                '    [ -f "$f" ] && mv $f $SCRATCH/gaussian/rwf/'
-                + self.shlexnames["basename"]
-                + "_$SLURM_JOB_ID.rwf\n",
-                "done\n",
-                "\n",
-                "# Empty Scratch directory\n",
-                "rm -rf $GAUSS_SCRDIR\n",
-                "\n",
-                'echo "Computation finished."\n',
-                "\n",
-            ]
-        )
+            ["\n",
+            "# Empty Scratch directory\n",
+            "rm -rf $SCRATCHDIR\n",
+            "\n",
+            'echo "Computation finished."\n',
+            "\n"])
 
         # Write .sh file
         with open(output, "w") as script_file:
@@ -452,5 +491,20 @@ class Computation:
 
         # Add output file
         start_line += " > " + self.shlexnames["basename"] + ".log\n"
+
+        return start_line
+
+    def orca_start_line(self):
+        """Start line builder"""
+        # Create timeout line
+        walltime = self.walltime_as_list()
+        runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
+        start_line = "timeout " + str(runtime) + " "
+        # Orca location
+        start_line += "$ORCA_BIN_DIR/orca "
+        # Add input file
+        start_line += self.shlexnames["inputfile"]
+        # Add output file
+        start_line += " > " + self.shlexnames["basename"] + ".out\n"
 
         return start_line
