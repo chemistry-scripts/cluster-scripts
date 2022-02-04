@@ -35,7 +35,6 @@ def main():
     - Compute missing values
         - Memory
         - Number of nodes if appropriate
-        - Cluster section (HSW24/BDW28)
         - Convert filenames to printable values
     - Check parameters
         - Existence of files (or non-existence...)
