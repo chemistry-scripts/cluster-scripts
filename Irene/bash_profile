@@ -87,21 +87,21 @@ alias emacs="emacs -nw"
 # User specific aliases and functions
 alias almostFinished="echo '************************************';
                       echo 'Finished Steps:' ;
-                      grep -r --include '*.log' 'cpu time' $CCCSCRATCHDIR/gaussian
+                      grep -r --include '*.log' 'cpu time' $CCCSCRATCHDIR
                      "
 alias finished="echo '************************************';
                 echo 'Finished Computations:' ;
-                grep -r --include '*.slurmout' --exclude-dir=scratchGaussian finished ~/*
+                grep -r --include '*.slurmout' --exclude-dir=~/scratch finished ~/*
                "
 
 alias nbtour="echo '************************************';
               echo 'Nombre de Tours :' ;
-              grep -r --include '*.log' -c Predicted $CCCSCRATCHDIR/gaussian
+              grep -r --include '*.log' -c Predicted $CCCSCRATCHDIR
              "
 
 alias count="echo '************************************';
              echo 'Number of YESs:' ;
-             grep -r --include '*.log' -c YES $CCCSCRATCHDIR/gaussian
+             grep -r --include '*.log' -c YES $CCCSCRATCHDIR
             "
 
 alias encours="echo '************************************';
@@ -120,16 +120,16 @@ alias lowFreq="echo '************************************';
 
 alias vectors="echo '************************************';
                echo 'Computed Vectors:';
-               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $CCCSCRATCHDIR/gaussian | sed 's/\(produced\).*/\1/g'
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $CCCSCRATCHDIR | sed 's/\(produced\).*/\1/g'
               "
 
 alias warning="echo '************************************';
                echo 'Warning Produced: ' ;
-               grep -r --include '*.log' Warning $CCCSCRATCHDIR/gaussian
-               grep -r --include '*.log' --exclude-dir=scratchGaussian Warning ~/*
+               grep -r --include '*.log' Warning $CCCSCRATCHDIR
+               grep -r --include '*.log' --exclude-dir=~/scratch Warning ~/*
               "
 
-alias predictions="find $CCCSCRATCHDIR/gaussian -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+alias predictions="find $CCCSCRATCHDIR -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
 
 alias username="encours nbtour count almostFinished finished"
 
@@ -137,7 +137,7 @@ alias complet="username vectors warning lowFreq"
 
 alias queue='ccc_mpp -u $USER'
 
-alias watchLogs='watch tail -n10 ~/scratchGaussian/*/*.log ~/scratchOrca/*/*.out'
+alias watchLogs='watch tail -n10 ~/scratch/*/*.{log,out}'
 # Better alternative, only a problem with quotes
 # alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
 

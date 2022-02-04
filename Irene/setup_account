@@ -5,19 +5,17 @@
 #
 
 # Safety conversion
-# dos2unix *
+dos2unix *
 
 # Switch module to make sure Scratch is available
 module switch dfldatadir/gen12981
 
 # Create directories
 mkdir -p ~/.local/bin
-mkdir -p $CCCSCRATCHDIR/gaussian/rwf
-mkdir -p $CCCSCRATCHDIR/orca
+mkdir -p $CCCSCRATCHDIR/rwf
 
 # Create shortcuts for the scratch
-ln -sTf $CCCSCRATCHDIR/gaussian ~/scratchGaussian
-ln -sTf $CCCSCRATCHDIR/orca ~/scratchOrca
+ln -sTf $CCCSCRATCHDIR/ ~/scratch
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
@@ -31,15 +29,15 @@ sed -e "s/username/${firstname}/" < bash_profile > ~/.bash_profile
 cp -f bashrc ~/.bashrc
 cp -f emacs ~/.emacs
 cp -f __init__.py ~/.local/bin/__init__.py
-sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
 sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
-# sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
+sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
+sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
 
 # Change permissions
 chmod +x ~/.local/bin/__init__.py
 chmod +x ~/.local/bin/subg16.py
 chmod +x ~/.local/bin/computations_setup.py
-# chmod +x ~/.local/bin/suborca.py
+chmod +x ~/.local/bin/suborca.py
 
 echo "Your account was set up. You should log off and back on to make sure"
 echo "everything works."
