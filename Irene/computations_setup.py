@@ -148,7 +148,7 @@ class Computation:
     def get_values_from_orca_input_file(self):
         """Parse Orca input file and retrieve useful information"""
         with open(self.input_file, "r") as file:
-            # Go through lines and test if they are containing nproc, mem, etc. related
+            # Go through lines and test if they contain nproc, mem, etc. related
             # directives.
             for line in file.readlines():
                 if "pal" in line.lower():
@@ -387,7 +387,6 @@ class Computation:
                 'echo "job_id : $BRIDGE_MSUB_JOBID"\n',
                 'echo "job_name : $BRIDGE_MSUB_REQNAME"\n',
                 'echo "$BRIDGE_MSUB_NPROC processes"\n',
-                'echo "core number : $BRIDGE_MSUB_NCORE cores"\n',
                 "\n",
             ]
         )
