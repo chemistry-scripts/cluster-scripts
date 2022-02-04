@@ -95,14 +95,11 @@ class Computation:
         runvalues["walltime"] = "24:00:00"
         runvalues["memory"] = 4000  # In MB
         runvalues["gaussian_memory"] = 1000  # in MB
-        runvalues["chk"] = set()
-        runvalues["oldchk"] = set()
-        runvalues["rwf"] = set()
         runvalues["nproc_in_input"] = False
         runvalues["memory_in_input"] = False
         runvalues["nbo"] = False
         runvalues["nbo_basefilename"] = ""
-        runvalues["cluster_section"] = "HSW24"
+        runvalues["extra_files"] = list()
         return runvalues
 
     def get_values_from_gaussian_input_file(self):
@@ -115,11 +112,17 @@ class Computation:
                     self.runvalues["nproc_in_input"] = True
                     self.runvalues["cores"] = int(line.split("=")[1].rstrip("\n"))
                 if "%chk" in line.lower():
-                    self.runvalues["chk"].add(line.split("=")[1].rstrip("\n"))
+                    self.runvalues["extra_files"].append(
+                        line.split("=")[1].rstrip("\n")
+                    )
                 if "%oldchk" in line.lower():
-                    self.runvalues["oldchk"].add(line.split("=")[1].rstrip("\n"))
+                    self.runvalues["extra_files"].append(
+                        line.split("=")[1].rstrip("\n")
+                    )
                 if "%rwf" in line.lower():
-                    self.runvalues["rwf"].add(line.split("=")[1].rstrip("\n"))
+                    self.runvalues["extra_files"].append(
+                        line.split("=")[1].rstrip("\n")
+                    )
                 if "%mem" in line.lower():
                     self.runvalues["memory_in_input"] = True
                     mem_line = line.split("=")[1].rstrip("\n")
@@ -141,6 +144,41 @@ class Computation:
                     self.runvalues["nbo_basefilename"] = line.split("=")[1].rstrip(
                         " \n"
                     )
+
+    def get_values_from_orca_input_file(self):
+        """Parse Orca input file and retrieve useful information"""
+        with open(self.input_file, "r") as file:
+            # Go through lines and test if they are containing nproc, mem, etc. related
+            # directives.
+            for line in file.readlines():
+                if "pal" in line.lower():
+                    # Line such as "! Opt PAL12 Freq"
+                    self.runvalues["nproc_in_input"] = True
+                    self.runvalues["cores"] = int(
+                        re.search(r"pal([0-9]+)", line, flags=re.IGNORECASE).group()[3:]
+                    )
+                if "nprocs" in line.lower():
+                    # Line is %pal nprocs 12 end, with possible line breaks before nprocs and after 12.
+                    self.runvalues["nproc_in_input"] = True
+                    self.runvalues["cores"] = int(
+                        re.search(r"nprocs\s+([0-9]+)", line).group().split()[1]
+                    )
+                if "nbo6" in line.lower() or "npa6" in line.lower():
+                    self.runvalues["nbo"] = True
+                if "FILE=" in line:
+                    # FILE=FILENAME
+                    self.runvalues["nbo_basefilename"] = line.split("=")[1].rstrip(
+                        " \n"
+                    )
+                if "moinp" in line.lower():
+                    # %moinp "filename.gbw"
+                    self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
+                if "inhessname" in line.lower():
+                    # InHessName "FirstJob.hess"
+                    self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
+                if "NEB_End_XYZFile" in line:
+                    # NEB_End_XYZFile "NEB_end_file.xyz"
+                    self.runvalues["extra_files"].append(line.split()[1].strip('"'))
 
     def fill_missing_values(self):
         """Compute and fill all missing values."""
@@ -169,14 +207,6 @@ class Computation:
         input_basename = os.path.splitext(self.runvalues["inputfile"])[0]
         shlexnames["inputfile"] = shlex.quote(self.runvalues["inputfile"])
         shlexnames["basename"] = shlex.quote(input_basename)
-        if self.runvalues["chk"] is not None:
-            shlexnames["chk"] = [shlex.quote(chk) for chk in self.runvalues["chk"]]
-        if self.runvalues["oldchk"] is not None:
-            shlexnames["oldchk"] = [
-                shlex.quote(oldchk) for oldchk in self.runvalues["oldchk"]
-            ]
-        if self.runvalues["rwf"] is not None:
-            shlexnames["rwf"] = [shlex.quote(rwf) for rwf in self.runvalues["rwf"]]
         return shlexnames
 
     def fill_from_commandline(self, cmdline_args):
@@ -338,65 +368,25 @@ class Computation:
                 "cp -f " + self.shlexnames["inputfile"] + " $SCRATCHDIR\n\n",
             ]
         )
-        # If chk file is defined in input and exists, copy it in scratch
-        if self.runvalues["chk"] != set():
-            out.extend("# Copy chk file in scratch if it exists\n")
-            for chk in self.shlexnames["chk"]:
-                out.extend(
-                    [
-                        "if [ -f " + chk + " ] \n",
-                        "then\n",
-                        "  cp " + chk + " $SCRATCHDIR\n",
-                        "fi\n\n",
-                    ]
-                )
-        # If oldchk file is defined in input and exists, copy it in scratch
-        if self.runvalues["oldchk"] != set():
-            out.extend("# Copy oldchk file in scratch if it exists\n")
-            for oldchk in self.shlexnames["oldchk"]:
-                out.extend(
-                    [
-                        "if [ -f " + oldchk + " ] \n",
-                        "then\n",
-                        "  cp " + oldchk + " $SCRATCHDIR\n",
-                        "fi\n\n",
-                    ]
-                )
-        # If rwf file is defined in input and exists, copy it in scratch
-        if self.runvalues["rwf"] != set():
-            out.extend("# Copy rwf file in scratch if it exists\n")
-            for rwf in self.shlexnames["rwf"]:
-                out.extend(
-                    [
-                        "if [ -f " + rwf + " ] \n",
-                        "then\n",
-                        "  cp " + rwf + " $SCRATCHDIR\n",
-                        "fi\n\n",
-                    ]
-                )
-        # TODO: Copy files for Orca
-        # if self.runvalues["xxx"] != set():
-        #     out.extend("# Copy xxx file in scratch if it exists\n")
-        #     for xxx in self.shlexnames["xxx"]:
-        #         out.extend(
-        #             [
-        #                 "if [ -f " + xxx + " ] \n",
-        #                 "then\n",
-        #                 "  cp " + xxx + " $SCRATCHDIR\n",
-        #                 "fi\n\n",
-        #             ]
-        #         )
-
+        # For all files in "extra_files", check if they exist and copy them to Scratch if they do.
+        for file in self.runvalues["extra_files"]:
+            out.extend(
+                [
+                    "if [ -f " + file + " ] \n",
+                    "then\n",
+                    "  cp " + file + " $SCRATCHDIR\n",
+                    "fi\n\n",
+                ]
+            )
         out.extend(
             [
                 "cd $SCRATCHDIR\n",
                 "\n",
                 "# Print job info in output file\n",
                 'echo "job_id : $BRIDGE_MSUB_JOBID"\n',
-                # 'echo "job_name : $SLURM_JOB_NAME"\n',
-                # 'echo "node_number : $SLURM_JOB_NUM_NODES nodes"\n',
-                # 'echo "core number : $SLURM_JOB_CPUS_PER_NODE cores"\n',
-                # 'echo "Node list : $SLURM_JOB_NODELIST"\n',
+                'echo "job_name : $BRIDGE_MSUB_REQNAME"\n',
+                'echo "$BRIDGE_MSUB_NPROC processes"\n',
+                'echo "core number : $BRIDGE_MSUB_NCORE cores"\n',
                 "\n",
             ]
         )
@@ -413,7 +403,7 @@ class Computation:
         if self.__software == "g16":
             out.extend(
                 [
-                    "cp " + self.shlexnames["basename"] + ".log $SLURM_SUBMIT_DIR\n",
+                    "cp " + self.shlexnames["basename"] + ".log $BRIDGE_MSUB_PWD\n",
                     "\n",
                     "# If chk file exists, create fchk and copy everything\n",
                     "for f in $SCRATCHDIR/*.chk; do\n",
@@ -421,20 +411,14 @@ class Computation:
                     "done\n",
                     "\n",
                     "for f in $SCRATCHDIR/*chk; do\n",
-                    '    [ -f "$f" ] && cp $f $SLURM_SUBMIT_DIR\n',
+                    '    [ -f "$f" ] && cp $f $BRIDGE_MSUB_PWD\n',
                     "done\n",
                     "\n",
-                ]
-            )
-            out.extend(
-                [
                     "# If Gaussian crashed or was stopped somehow, copy the rwf\n",
                     "for f in $SCRATCHDIR/*rwf; do\n",
-                    "    mkdir -p $CCCSCRATCHDIR/gaussian/rwf\n"
+                    "    mkdir -p $CCCSCRATCHDIR/rwf\n"
                     # Move rwf as JobName_123456.rwf to the rwf folder in scratch
-                    '    [ -f "$f" ] && mv $f $SCRATCH/gaussian/rwf/'
-                    + self.shlexnames["basename"]
-                    + "_$SLURM_JOB_ID.rwf\n",
+                    '    [ -f "$f" ] && mv $f $CCCSCRATCHDIR/rwf/' + self.shlexnames["basename"] + "_$BRIDGE_MSUB_JOBID.rwf\n",
                     "done\n",
                 ]
             )
@@ -442,8 +426,28 @@ class Computation:
             out.extend(
                 [
                     "# Copy everything starting with the basename. Maybe a bit to crude."
-                    "cp " + self.shlexnames["basename"] + "* $SLURM_SUBMIT_DIR\n",
-                    "\n"
+                    "cp " + self.shlexnames["basename"] + "* $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.gbw $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.engrad $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.xyz $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.loc $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.qro $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.uno $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.unso $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.uco $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.hess $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.cis $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.dat $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.mp2nat $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.nat $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.scfp_fod $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.scfp $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.scfr $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.nbo $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/FILE.47 $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/* _property.txt $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/* spin * $BRIDGE_MSUB_PWD\n",
+                    "\n",
                 ]
             )
         if self.runvalues["nbo"]:
@@ -451,17 +455,20 @@ class Computation:
                 [
                     "# Retrieve NBO Files\n",
                     "cp " + self.runvalues["nbo_basefilename"] + ".*"
-                                                                 " $SLURM_SUBMIT_DIR\n"
-                                                                 "\n",
+                    " $BRIDGE_MSUB_PWD\n"
+                    "\n",
                 ]
             )
         out.extend(
-            ["\n",
-            "# Empty Scratch directory\n",
-            "rm -rf $SCRATCHDIR\n",
-            "\n",
-            'echo "Computation finished."\n',
-            "\n"])
+            [
+                "\n",
+                "# Empty Scratch directory\n",
+                "rm -rf $SCRATCHDIR\n",
+                "\n",
+                'echo "Computation finished."\n',
+                "\n",
+            ]
+        )
 
         # Write .sh file
         with open(output, "w") as script_file:
