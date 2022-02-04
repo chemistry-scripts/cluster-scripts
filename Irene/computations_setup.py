@@ -396,6 +396,16 @@ class Computation:
         if self.__software == "g16":
             out.extend(self.gaussian_start_line())
         elif self.__software == "orca":
+            if not (self.runvalues["nproc_in_input"]):
+                out.extend(
+                    [
+                        "# Add nprocs directive to header of " + self.shlexnames["inputfile"] + "\n",
+                        "sed -i '1s;^;%pal\\n  nprocs '$NCPU'\\nend\\n\\n;' "
+                        + self.shlexnames["inputfile"]
+                        + "\n",
+                        "\n",
+                    ]
+                )
             out.extend(self.orca_start_line())
 
         out.append("# Move files back to original directory\n")
@@ -425,8 +435,7 @@ class Computation:
         elif self.__software == "orca":
             out.extend(
                 [
-                    "# Copy everything starting with the basename. Maybe a bit to crude."
-                    "cp " + self.shlexnames["basename"] + "* $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.out $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.gbw $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.engrad $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.xyz $BRIDGE_MSUB_PWD\n",
@@ -445,8 +454,8 @@ class Computation:
                     "cp $SCRATCHDIR/*.scfr $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.nbo $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/FILE.47 $BRIDGE_MSUB_PWD\n",
-                    "cp $SCRATCHDIR/* _property.txt $BRIDGE_MSUB_PWD\n",
-                    "cp $SCRATCHDIR/* spin * $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*_property.txt $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*spin* $BRIDGE_MSUB_PWD\n",
                     "\n",
                 ]
             )
