@@ -304,6 +304,7 @@ class Computation:
                 "#MSUB -o " + self.shlexnames["basename"] + ".slurmout\n",
                 # TODO: Merge out and err?
                 "\n",
+                "set +x\n",
             ]
         )
 
@@ -399,7 +400,9 @@ class Computation:
             if not (self.runvalues["nproc_in_input"]):
                 out.extend(
                     [
-                        "# Add nprocs directive to header of " + self.shlexnames["inputfile"] + "\n",
+                        "# Add nprocs directive to header of "
+                        + self.shlexnames["inputfile"]
+                        + "\n",
                         "sed -i '1s;^;%pal\\n  nprocs '$NCPU'\\nend\\n\\n;' "
                         + self.shlexnames["inputfile"]
                         + "\n",
@@ -428,7 +431,9 @@ class Computation:
                     "for f in $SCRATCHDIR/*rwf; do\n",
                     "    mkdir -p $CCCSCRATCHDIR/rwf\n"
                     # Move rwf as JobName_123456.rwf to the rwf folder in scratch
-                    '    [ -f "$f" ] && mv $f $CCCSCRATCHDIR/rwf/' + self.shlexnames["basename"] + "_$BRIDGE_MSUB_JOBID.rwf\n",
+                    '    [ -f "$f" ] && mv $f $CCCSCRATCHDIR/rwf/'
+                    + self.shlexnames["basename"]
+                    + "_$BRIDGE_MSUB_JOBID.rwf\n",
                     "done\n",
                 ]
             )
