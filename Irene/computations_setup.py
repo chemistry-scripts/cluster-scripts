@@ -263,9 +263,9 @@ class Computation:
 
         Structure:
             - SBATCH instructions for the queue manager
-            - setup of Gaussian16 on the nodes
+            - setup software on the nodes
             - creation of scratch, copy necessary files
-            - Run Gaussian16
+            - Run calculation
             - Copy appropriate files back to $HOME
             - Cleanup scratch
         """
@@ -278,7 +278,6 @@ class Computation:
 
         out = [
             "#!/bin/bash\n",
-            "#MSUB -q skylake\n",  # TODO: Remove queue selection after January 26th
             "#MSUB -A gen12981\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 1\n",
