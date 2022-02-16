@@ -278,6 +278,7 @@ class Computation:
 
         out = [
             "#!/bin/bash\n",
+            "#MSUB -q skylake\n",  # Update if partition changes
             "#MSUB -A gen12981\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 1\n",
