@@ -126,14 +126,14 @@ alias vectors="echo '************************************';
 alias warning="echo '************************************';
                echo 'Warning Produced: ' ;
                grep -r --include '*.log' Warning $CCCSCRATCHDIR
-               grep -r --include '*.log' --exclude-dir=~/scratch Warning ~/*
+               grep -r --include '*.log' --exclude-dir=$HOME/scratch Warning ~/*
               "
 
 alias predictions="find $CCCSCRATCHDIR -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
 
 alias username="encours nbtour count almostFinished finished"
 
-alias complet="username vectors warning lowFreq"
+alias calculations="username vectors warning lowFreq"
 
 alias queue='ccc_mpp -u $USER'
 
@@ -141,4 +141,4 @@ alias watchLogs='watch tail -n10 ~/scratch/*/*.{log,out}'
 # Better alternative, only a problem with quotes
 # alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
 
-alias watchQueue='watch --color "ccc_mpp -u $USER"'
+alias watchQueue='watch -n 30 --color "ccc_mpp -u $USER"'
