@@ -350,15 +350,15 @@ class Computation:
             )
         else:
             out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
-        # if self.runvalues["nbo"]:
-        #     out.extend(
-        #         [
-        #             "# Setup NBO6\n",
-        #             "export NBOBIN=$CCC_ALL_CCCWORKDIR/nbo6/bin\n",
-        #             "export PATH=$PATH:$NBOBIN\n",
-        #             "\n",
-        #         ]
-        #     )
+        if self.runvalues["nbo"]:
+            out.extend(
+                [
+                    "# Setup NBO6\n",
+                    "export NBOBIN= $GEN12981_ALL_CCCWORKDIR/nbo6/bin\n",
+                    "export PATH=$PATH:$NBOBIN\n",
+                    "\n",
+                ]
+            )
         out.extend(
             [
                 "# Setup Scratch\n",
