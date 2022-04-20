@@ -42,16 +42,7 @@ def main():
     - Build script file
     - Submit script
     """
-    # Setup logging
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    stream_handler = logging.StreamHandler()
-
-    formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(message)s")
-    stream_handler.setFormatter(formatter)
-
-    logger.addHandler(stream_handler)
+    setup_logger()
 
     # Get parameters from command line
     cmdline_args = get_options()
@@ -92,6 +83,16 @@ def main():
             input_file_name, computation.walltime
         )
     )
+
+
+def setup_logger():
+    # Setup logging
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    stream_handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(message)s")
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
 
 
 def get_options():
