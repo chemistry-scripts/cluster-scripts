@@ -15,21 +15,21 @@ fi
 module purge
 
 # Switch datadir (for proper directories settings)
-module switch dfldatadir/gen12981
+module switch dfldatadir/gen6494
 
 # OptNPath
 module load fortran/intel/20.0.0
 module load mkl/20.0.0
-export PATH=$PATH:$GEN12981_ALL_CCCWORKDIR/optnpath
+export PATH=$PATH:$GEN6494_ALL_CCCWORKDIR/optnpath
 
 # Orca
 module load mpi/openmpi/4.1.1
-export ORCA_BIN_DIR=$GEN12981_ALL_CCCWORKDIR/orca
+export ORCA_BIN_DIR=$GEN6494_ALL_CCCWORKDIR/orca
 export PATH=$PATH:$ORCA_BIN_DIR
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR
 
 # Molden
-export PATH=$PATH:$GEN12981_ALL_CCCWORKDIR/molden
+export PATH=$PATH:$GEN6494_ALL_CCCWORKDIR/molden
 
 # Gaussian
 module load gaussian/16-C.01

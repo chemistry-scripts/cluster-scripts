@@ -279,7 +279,7 @@ class Computation:
         out = [
             "#!/bin/bash\n",
             "#MSUB -q skylake\n",  # Update if partition changes
-            "#MSUB -A gen12981\n",  # To update with account name if it changes.
+            "#MSUB -A gen6494\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 1\n",
             "#MSUB -m scratch,work\n",
@@ -319,7 +319,7 @@ class Computation:
             [
                 "# Load Modules\n",
                 "module purge\n",
-                "module switch dfldatadir/gen12981\n",
+                "module switch dfldatadir/gen6494\n",
             ]
         )
         if self.__software == "g16":
@@ -338,7 +338,7 @@ class Computation:
                     "module load mpi/openmpi/4.1.1\n",
                     "\n",
                     "# Setup Orca specific variables\n",
-                    "export ORCA_BIN_DIR=$GEN12981_ALL_CCCWORKDIR/orca\n",
+                    "export ORCA_BIN_DIR=$GEN6494_ALL_CCCWORKDIR/orca\n",
                     "export PATH=$PATH:$ORCA_BIN_DIR\n",
                     "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
                     "\n",
@@ -354,7 +354,7 @@ class Computation:
             out.extend(
                 [
                     "# Setup NBO6\n",
-                    "export NBOBIN= $GEN12981_ALL_CCCWORKDIR/nbo6/bin\n",
+                    "export NBOBIN= $GEN6494_ALL_CCCWORKDIR/nbo6/bin\n",
                     "export PATH=$PATH:$NBOBIN\n",
                     "\n",
                 ]
