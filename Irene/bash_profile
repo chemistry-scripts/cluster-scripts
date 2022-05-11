@@ -137,8 +137,8 @@ alias calculations="username vectors warning lowFreq"
 
 alias queue='ccc_mpp -u $USER'
 
-alias watchLogs='watch tail -n10 ~/scratch/*/*.{log,out}'
+alias watchLogs='watch tail -n7 ~/scratch/*/*.{log,out}'
 # Better alternative, only a problem with quotes
 # alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
 
-alias watchQueue='watch -n 30 --color "ccc_mpp -u $USER"'
+alias watchQueue='watch -n 10 --color "ccc_mpp -u $USER"'
