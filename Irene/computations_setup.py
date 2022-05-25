@@ -29,7 +29,10 @@ class Computation:
         self.__software = software
         self.__runvalues = self.default_run_values()
         self.fill_from_commandline(cmdline_args)
-        self.get_values_from_gaussian_input_file()
+        if self.__software == "g16":
+            self.get_values_from_gaussian_input_file()
+        elif self.__software == "orca":
+            self.get_values_from_orca_input_file()
         self.fill_missing_values()
         self.shlexnames = self.create_shlexnames()
 
@@ -153,10 +156,10 @@ class Computation:
             for line in file.readlines():
                 if "pal" in line.lower():
                     # Line such as "! Opt PAL12 Freq"
-                    self.runvalues["nproc_in_input"] = True
-                    self.runvalues["cores"] = int(
-                        re.search(r"pal([0-9]+)", line, flags=re.IGNORECASE).group()[3:]
-                    )
+                    extract = re.search(r"pal([0-9]+)", line, flags=re.IGNORECASE)
+                    if extract:
+                        self.runvalues["nproc_in_input"] = True
+                        self.runvalues["cores"] = int(extract.group()[3:])
                 if "nprocs" in line.lower():
                     # Line is %pal nprocs 12 end, with possible line breaks before nprocs and after 12.
                     self.runvalues["nproc_in_input"] = True
