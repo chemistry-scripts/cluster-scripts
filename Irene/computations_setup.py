@@ -25,15 +25,20 @@ class Computation:
         """
         Class Builder
         """
+        logger = logging.getLogger()
         self.__input_file = input_file
         self.__software = software
         self.__runvalues = self.default_run_values()
+        logger.debug("Runvalues default:  %s", self.runvalues)
         self.fill_from_commandline(cmdline_args)
+        logger.debug("Runvalues cmdline:  %s", self.runvalues)
         if self.__software == "g16":
             self.get_values_from_gaussian_input_file()
         elif self.__software == "orca":
             self.get_values_from_orca_input_file()
+        logger.debug("Runvalues gaussian:  %s", self.runvalues)
         self.fill_missing_values()
+        logger.debug("Runvalues backfilled:  %s", self.runvalues)
         self.shlexnames = self.create_shlexnames()
 
     @property
@@ -233,9 +238,9 @@ class Computation:
         if self.runvalues["memory_in_input"]:
             # Memory defined in input file
             gaussian_memory = self.runvalues["gaussian_memory"]
-            if self.runvalues["nproc_in_input"]:
-                # Cores also defined in input file: We adjust the number of core requirement so that the memory
-                # required is allocated
+            if self.runvalues["cores"]:
+                # Cores also defined in input file or from command_line: We adjust the number of core requirement
+                # so that the memory required is allocated
                 if gaussian_memory / self.runvalues["cores"] > 3750:
                     self.runvalues["cores"] = ceil(float(gaussian_memory) / 3750)
                     memory = 3750 * self.runvalues["cores"]
@@ -245,8 +250,9 @@ class Computation:
                 memory = gaussian_memory + 6000
         else:
             # Memory not defined in input
-            if self.runvalues["nproc_in_input"]:
-                # NProc defined in input, give 3.75 GB per core, remove overhead, min of 2GB if one core.
+            if self.runvalues["cores"]:
+                # NProc defined in input or from command line
+                # Give 3.75 GB per core, remove overhead, min of 2GB if one core.
                 memory = 3750 * self.runvalues["cores"]
                 gaussian_memory = max(memory - 6000, 2000)
             else:
@@ -288,7 +294,7 @@ class Computation:
             "#MSUB -m scratch,work\n",
             "#MSUB -@ user@server.org:begin,end\n",
         ]
-        if self.runvalues["nproc_in_input"]:
+        if self.runvalues["cores"]:  # e.g. is not None
             out.extend(["#MSUB -n " + str(self.runvalues["cores"]) + "\n"])
         else:
             out.extend(["#MSUB -n 48\n"])
@@ -311,12 +317,18 @@ class Computation:
             ]
         )
 
-        if not self.runvalues["nproc_in_input"]:  # nproc line not in input
+        if not self.runvalues[
+            "cores"
+        ]:  # Number of cores not set from either command line or input file
             out.extend(
                 [
                     "# Compute actual cpu number\n",
                     "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
                 ]
+            )
+        else:
+            out.extend(
+                ["# Set NCPU value\n", "NCPU=" + str(self.runvalues["cores"]) + "\n\n"]
             )
         out.extend(
             [
@@ -347,12 +359,14 @@ class Computation:
                     "\n",
                 ]
             )
-        if self.runvalues["nproc_in_input"]:
+        if self.runvalues["cores"]:
             out.extend(
                 ["export OMP_NUM_THREADS=", str(self.runvalues["cores"]), "\n", "\n"]
             )
         else:
             out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
+
+        # Manage NBO settings
         if self.runvalues["nbo"]:
             out.extend(
                 [
@@ -362,6 +376,8 @@ class Computation:
                     "\n",
                 ]
             )
+
+        # Setup scratch
         out.extend(
             [
                 "# Setup Scratch\n",
