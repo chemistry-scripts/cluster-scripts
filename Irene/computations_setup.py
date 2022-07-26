@@ -311,7 +311,6 @@ class Computation:
                 "#MSUB -T " + str(walltime_in_seconds) + "\n",
                 "#MSUB -e " + self.shlexnames["basename"] + ".slurmerr\n",
                 "#MSUB -o " + self.shlexnames["basename"] + ".slurmout\n",
-                # TODO: Merge out and err?
                 "\n",
                 "set +x\n",
             ]
@@ -371,7 +370,7 @@ class Computation:
             out.extend(
                 [
                     "# Setup NBO6\n",
-                    "export NBOBIN= $GEN6494_ALL_CCCWORKDIR/nbo6/bin\n",
+                    "export NBOBIN=$GEN6494_ALL_CCCWORKDIR/nbo6/bin\n",
                     "export PATH=$PATH:$NBOBIN\n",
                     "\n",
                 ]
