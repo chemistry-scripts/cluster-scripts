@@ -155,7 +155,7 @@ def help_epilog():
     return """
 Defaults values:
   Default memory:          160GB
-  Default cores:           48
+  Default cores:           24
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,

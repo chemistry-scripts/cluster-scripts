@@ -256,9 +256,9 @@ class Computation:
                 memory = 3750 * self.runvalues["cores"]
                 gaussian_memory = max(memory - 6000, 2000)
             else:
-                # All memory is available, give Gaussian 170GB to run.
-                memory = 180000
-                gaussian_memory = 170000
+                # All memory for 24 cores is available, give Gaussian 75GB to run out of 90 GB available.
+                memory = 90000
+                gaussian_memory = 75000
 
         return memory, gaussian_memory
 
@@ -300,13 +300,13 @@ class Computation:
         if self.runvalues["cores"]:  # e.g. is not None
             out.extend(["#MSUB -n " + str(self.runvalues["cores"]) + "\n"])
         else:
-            out.extend(["#MSUB -n 48\n"])
+            out.extend(["#MSUB -n 24\n"])
 
         walltime_in_seconds = self.walltime_as_list()
         walltime_in_seconds = (
-            3600 * walltime_in_seconds[0]
-            + 60 * walltime_in_seconds[1]
-            + walltime_in_seconds[2]
+                3600 * walltime_in_seconds[0]
+                + 60 * walltime_in_seconds[1]
+                + walltime_in_seconds[2]
         )
 
         out.extend(
@@ -489,8 +489,8 @@ class Computation:
                 [
                     "# Retrieve NBO Files\n",
                     "cp " + self.runvalues["nbo_basefilename"] + ".*"
-                    " $BRIDGE_MSUB_PWD\n"
-                    "\n",
+                                                                 " $BRIDGE_MSUB_PWD\n"
+                                                                 "\n",
                 ]
             )
         out.extend(
@@ -522,7 +522,7 @@ class Computation:
         # Manage processors
         if not self.runvalues["nproc_in_input"]:
             # nproc line not in input, set proc number as a command-line argument
-            start_line += '-c="0-$(($NCPU-1))" '
+            start_line += '-c="$(python $HOME/.local/bin/g16_cpu_list.py)" '
         if not self.runvalues["memory_in_input"]:
             # memory line not in input, set it as command-line argument
             start_line += "-m=" + str(self.runvalues["gaussian_memory"]) + "MB "
