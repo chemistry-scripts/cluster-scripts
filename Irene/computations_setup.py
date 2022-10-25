@@ -291,9 +291,12 @@ class Computation:
             "#MSUB -A gen6494\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 1\n",
-            "#MSUB -m scratch,work\n",
             "#MSUB -@ user@server.org:begin,end\n",
         ]
+        if self.__software == "g16" and not (self.runvalues["nbo"]):  # Gaussian 16 but no NBO required
+            out.extend(["#MSUB -m scratch\n"])
+        else:
+            out.extend("#MSUB -m scratch,work\n", )
         if self.runvalues["cores"]:  # e.g. is not None
             out.extend(["#MSUB -n " + str(self.runvalues["cores"]) + "\n"])
         else:
