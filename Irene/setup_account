@@ -5,23 +5,23 @@
 #
 
 # Safety conversion
-dos2unix *
+dos2unix ./*
 
 # Switch module to make sure Scratch is available
 module switch dfldatadir/gen6494
 
 # Create directories
 mkdir -p ~/.local/bin
-mkdir -p $CCCSCRATCHDIR/rwf
+mkdir -p "$CCCSCRATCHDIR"/rwf
 
 # Create shortcuts for the scratch
-ln -sTf $CCCSCRATCHDIR/ ~/scratch
+ln -sTf "$CCCSCRATCHDIR"/ ~/scratch
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
-read mail
+read -r mail
 echo -n "Enter your first name and press [ENTER]: "
-read firstname
+read -r firstname
 
 # Copy files and change emails and firstnames when necessary
 sed -e "s/user@server.org/${mail}/" < forward > ~/.forward
