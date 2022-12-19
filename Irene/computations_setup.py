@@ -319,19 +319,6 @@ class Computation:
             ]
         )
 
-        if not self.runvalues[
-            "cores"
-        ]:  # Number of cores not set from either command line or input file
-            out.extend(
-                [
-                    "# Compute actual cpu number\n",
-                    "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
-                ]
-            )
-        else:
-            out.extend(
-                ["# Set NCPU value\n", "NCPU=" + str(self.runvalues["cores"]) + "\n\n"]
-            )
         out.extend(
             [
                 "# Load Modules\n",
@@ -366,7 +353,7 @@ class Computation:
                 ["export OMP_NUM_THREADS=", str(self.runvalues["cores"]), "\n", "\n"]
             )
         else:
-            out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
+            out.extend(["export OMP_NUM_THREADS=$SLURM_NTASKS\n", "\n"])
 
         # Manage NBO settings
         if self.runvalues["nbo"]:
@@ -423,7 +410,7 @@ class Computation:
                         "# Add nprocs directive to header of "
                         + self.shlexnames["inputfile"]
                         + "\n",
-                        "sed -i '1s;^;%pal\\n  nprocs '$NCPU'\\nend\\n\\n;' "
+                        "sed -i '1s;^;%pal\\n  nprocs '$SLURM_NTASKS'\\nend\\n\\n;' "
                         + self.shlexnames["inputfile"]
                         + "\n",
                         "\n",
