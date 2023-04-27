@@ -322,14 +322,14 @@ class Computation:
         out.extend(
             [
                 "# Load Modules\n",
-                "module purge\n",
                 "module switch dfldatadir/gen6494\n",
             ]
         )
         if self.__software == "g16":
             out.extend(
                 [
-                    "module load gaussian/16-C.01\n",
+                    "module unload gaussian\n",
+                    "module load gaussian/16-C.02\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
@@ -509,7 +509,7 @@ class Computation:
         # Manage processors
         if not self.runvalues["nproc_in_input"]:
             # nproc line not in input, set proc number as a command-line argument
-            start_line += '-c="$(python $HOME/.local/bin/g16_cpu_list.py)" '
+            start_line += '-c="$(python3 $HOME/.local/bin/g16_cpu_list.py)" '
         if not self.runvalues["memory_in_input"]:
             # memory line not in input, set it as command-line argument
             start_line += "-m=" + str(self.runvalues["gaussian_memory"]) + "MB "

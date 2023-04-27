@@ -41,3 +41,6 @@
 
 ;;disable the version control
 (setq vc-handled-backends nil)
+
+;; disable auto indent
+(electric-indent-mode 0)

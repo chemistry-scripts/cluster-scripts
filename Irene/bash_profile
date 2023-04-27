@@ -32,11 +32,11 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR
 export PATH=$PATH:$GEN6494_ALL_CCCWORKDIR/molden
 
 # Gaussian
-module load gaussian/16-C.01
+module load gaussian/16-C.02
 . $GAUSSIAN_ROOT/g16/bsd/g16.profile
 
 # Python
-module load python3/3.7.5
+module load python3/3.10.6
 
 #===============================================================
 # Define some colors first:
