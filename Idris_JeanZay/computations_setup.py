@@ -17,7 +17,7 @@ import re
 
 class Computation:
     """
-    Class representing the computation that will be ran.
+    Class representing the computation that will be run.
     """
 
     def __init__(self, input_file, software, cmdline_args):
@@ -259,32 +259,12 @@ class Computation:
             out.extend(["#SBATCH --ntasks=40\n"])
         out.extend(
             [
-                "#SBATCH --mem=" + str(self.runvalues["memory"]) + "\n",
                 "#SBATCH --time=" + self.runvalues["walltime"] + "\n",
                 "#SBATCH --output=" + self.shlexnames["basename"] + ".slurmout\n",
                 "\n",
             ]
         )
-        if not self.runvalues["nproc_in_input"]:  # nproc line not in input
-            out.extend(
-                [
-                    "# Compute actual cpu number\n",
-                    "NCPU=$(lscpu -p | egrep -v '^#' | sort -u -t, -k 2,4 | wc -l)\n\n",
-                ]
-            )
-        if self.__software == "g09":
-            out.extend(
-                [
-                    "# Load Gaussian Module\n",
-                    "module purge\n",
-                    "module load gaussian/g09-revD01\n",
-                    "\n",
-                    "# Setup Gaussian specific variables\n",
-                    "export g09root='/gpfslocalsup/prod/g09/rev-C01/'\n",
-                    "source $g09root/g09/bsd/g09.profile\n",
-                ]
-            )
-        elif self.__software == "g16":
+        if self.__software == "g16":
             out.extend(
                 [
                     "# Load Gaussian Module\n",
@@ -296,10 +276,8 @@ class Computation:
                     "source $g16root/g16/bsd/g16.profile\n",
                 ]
             )
-        if self.runvalues["nproc_in_input"]:
-            out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
-        else:
-            out.extend(["export OMP_NUM_THREADS=$NCPU\n", "\n"])
+        out.extend(["export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE\n", "\n"])
+
         if self.runvalues["nbo"]:
             out.extend(
                 [
@@ -440,7 +418,7 @@ class Computation:
         # Manage processors
         if not self.runvalues["nproc_in_input"]:
             # nproc line not in input, set proc number as command-line argument
-            start_line += '-c="0-$(($NCPU-1))" '
+            start_line += '-c="$(g16_cpu_list)" '
         if not self.runvalues["memory_in_input"]:
             # memory line not in input, set it as command-line argument
             start_line += "-m=" + str(self.runvalues["gaussian_memory"]) + "MB "
