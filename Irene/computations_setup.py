@@ -288,7 +288,7 @@ class Computation:
         out = [
             "#!/bin/bash\n",
             "#MSUB -q skylake\n",  # Update if partition changes
-            "#MSUB -A gen6494\n",  # To update with account name if it changes.
+            "#MSUB -A gen14129\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 1\n",
             "#MSUB -@ user@server.org:begin,end\n",
@@ -322,14 +322,14 @@ class Computation:
         out.extend(
             [
                 "# Load Modules\n",
-                "module switch dfldatadir/gen6494\n",
+                "module purge\n",
+                "module switch dfldatadir/gen14129\n",
             ]
         )
         if self.__software == "g16":
             out.extend(
                 [
-                    "module unload gaussian\n",
-                    "module load gaussian/16-C.02\n",
+                    "module load flavor/gaussian/skylake gaussian/16-C.02\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
@@ -342,7 +342,7 @@ class Computation:
                     "module load mpi/openmpi/4.1.1\n",
                     "\n",
                     "# Setup Orca specific variables\n",
-                    "export ORCA_BIN_DIR=$GEN6494_ALL_CCCWORKDIR/orca\n",
+                    "export ORCA_BIN_DIR=$GEN14129_ALL_CCCWORKDIR/orca\n",
                     "export PATH=$PATH:$ORCA_BIN_DIR\n",
                     "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
                     "\n",
@@ -360,7 +360,7 @@ class Computation:
             out.extend(
                 [
                     "# Setup NBO6\n",
-                    "export NBOBIN=$GEN6494_ALL_CCCWORKDIR/nbo6/bin\n",
+                    "export NBOBIN=$GEN14129_ALL_CCCWORKDIR/nbo6/bin\n",
                     "export PATH=$PATH:$NBOBIN\n",
                     "\n",
                 ]
