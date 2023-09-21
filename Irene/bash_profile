@@ -36,7 +36,7 @@ export XTBHOME=$GEN14129_ALL_CCCWORKDIR/xtb
 source $XTBHOME/share/xtb/config_env.bash
 
 # Gaussian
-module load gaussian/16-C.02
+module load flavor/gaussian/skylake gaussian/16-C.02
 . $GAUSSIAN_ROOT/g16/bsd/g16.profile
 
 # Python
