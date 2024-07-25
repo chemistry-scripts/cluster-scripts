@@ -31,14 +31,16 @@ cp -f emacs ~/.emacs
 cp -f __init__.py ~/.local/bin/__init__.py
 sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
 sed -e "s/user@server.org/${mail}/" < subg16.py > ~/.local/bin/subg16.py
-sed -e "s/user@server.org/${mail}/" < suborca.py > ~/.local/bin/suborca.py
+sed -e "s/user@server.org/${mail}/" < suborca5.py > ~/.local/bin/suborca5.py
+sed -e "s/user@server.org/${mail}/" < suborca6.py > ~/.local/bin/suborca6.py
 cp -f g16_cpu_list.py ~/.local/bin/g16_cpu_list.py
 
 # Change permissions
 chmod +x ~/.local/bin/__init__.py
 chmod +x ~/.local/bin/subg16.py
 chmod +x ~/.local/bin/computations_setup.py
-chmod +x ~/.local/bin/suborca.py
+chmod +x ~/.local/bin/suborca5.py
+chmod +x ~/.local/bin/suborca6.py
 chmod +x ~/.local/bin/g16_cpu_list.py
 
 echo "Your account was set up. You should log off and back on to make sure"

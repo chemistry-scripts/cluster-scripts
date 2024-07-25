@@ -80,7 +80,7 @@ def main():
     open(input_file_name, "w").write(text)
 
     # Create computation object
-    computation = Computation(input_file_name, "orca", cmdline_args)
+    computation = Computation(input_file_name, "orca5", cmdline_args)
 
     # Create run file for gaussian
     computation.create_run_file(script_file_name)

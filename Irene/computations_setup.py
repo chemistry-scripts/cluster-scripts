@@ -34,7 +34,7 @@ class Computation:
         logger.debug("Runvalues cmdline:  %s", self.runvalues)
         if self.__software == "g16":
             self.get_values_from_gaussian_input_file()
-        elif self.__software == "orca":
+        elif self.__software == "orca5" or self.__software == "orca6":
             self.get_values_from_orca_input_file()
         logger.debug("Runvalues gaussian:  %s", self.runvalues)
         self.fill_missing_values()
@@ -187,6 +187,10 @@ class Computation:
                 if "NEB_End_XYZFile" in line:
                     # NEB_End_XYZFile "NEB_end_file.xyz"
                     self.runvalues["extra_files"].append(line.split()[1].strip('"'))
+                # if ".xyz" in line:
+                    # There is a line containing an .xyz file name. We collected all names and add them
+                    # TODO!!!!!
+                    # self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
 
     def fill_missing_values(self):
         """Compute and fill all missing values."""
@@ -336,13 +340,25 @@ class Computation:
                     "\n",
                 ]
             )
-        elif self.__software == "orca":
+        elif self.__software == "orca5":
             out.extend(
                 [
                     "module load mpi/openmpi/4.1.1\n",
                     "\n",
                     "# Setup Orca specific variables\n",
-                    "export ORCA_BIN_DIR=$GEN14129_ALL_CCCWORKDIR/orca\n",
+                    "export ORCA_BIN_DIR=$GEN14129_ALL_CCCWORKDIR/orca5\n",
+                    "export PATH=$PATH:$ORCA_BIN_DIR\n",
+                    "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
+                    "\n",
+                ]
+            )
+        elif self.__software == "orca6":
+            out.extend(
+                [
+                    "module load mpi/openmpi/4.1.6\n",
+                    "\n",
+                    "# Setup Orca specific variables\n",
+                    "export ORCA_BIN_DIR=$GEN14129_ALL_CCCWORKDIR/orca6\n",
                     "export PATH=$PATH:$ORCA_BIN_DIR\n",
                     "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
                     "\n",
@@ -403,7 +419,7 @@ class Computation:
         out.extend(["# Start " + self.__software + "\n"])
         if self.__software == "g16":
             out.extend(self.gaussian_start_line())
-        elif self.__software == "orca":
+        elif self.__software == "orca5" or self.__software == "orca6":
             if not (self.runvalues["nproc_in_input"]):
                 out.extend(
                     [
@@ -444,7 +460,7 @@ class Computation:
                     "done\n",
                 ]
             )
-        elif self.__software == "orca":
+        elif self.__software == "orca" or self.__software == "orca6":
             out.extend(
                 [
                     "cp $SCRATCHDIR/*.out $BRIDGE_MSUB_PWD\n",
