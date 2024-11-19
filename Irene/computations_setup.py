@@ -460,7 +460,7 @@ class Computation:
                     "done\n",
                 ]
             )
-        elif self.__software == "orca" or self.__software == "orca6":
+        elif self.__software == "orca5" or self.__software == "orca6":
             out.extend(
                 [
                     "cp $SCRATCHDIR/*.out $BRIDGE_MSUB_PWD\n",
