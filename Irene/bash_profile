@@ -119,7 +119,7 @@ alias encours="echo '************************************';
 alias lowFreq="echo '************************************';
                echo 'Three Lowest Frequencies: ' ;
                echo '************************************';
-               grep -r --include '*.log' -A6 Harmonic ~/*
+               grep -r --include '*.log' -m 1 Frequencies ~/*
               "
 
 alias vectors="echo '************************************';
