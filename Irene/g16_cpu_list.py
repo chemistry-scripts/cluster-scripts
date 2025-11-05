@@ -7,7 +7,8 @@ import sys
 with open("/proc/self/status") as cpu_status:
     for line in cpu_status:
         if re.search("Cpus_allowed_list", line):
-            cpus = line  # Cpus_allowed_list:      18-23,42-47
+            cpus = line  # Cpus_allowed_list:      0-1,24-31,128-129,152-159
             break
-cpu_list = cpus.split(":")[-1]  # 18-23,42-47
-sys.stdout.write(cpu_list.strip())
+cpu_list = cpus.split(":")[-1].strip().split(",")  # ['0-1','24-31','128-129',''152-159']
+
+sys.stdout.write(",".join(cpu_list[:len(cpu_list)//2])) # 0-1,24-31

@@ -4,7 +4,7 @@
 """
 Helper functions to set up theoretical chemistry computations on computing clusters.
 
-Last Update 2022-01-14 by Emmanuel Nicolas
+Last Update 2025-11-05 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -199,8 +199,8 @@ class Computation:
             raise ValueError(
                 "Multiple nodes not supported on this cluster for gaussian."
             )
-        if self.runvalues["nproc_in_input"] and self.runvalues["cores"] > 48:
-            raise ValueError("Number of cores cannot exceed 48 for one node.")
+        if self.runvalues["nproc_in_input"] and self.runvalues["cores"] > 128:
+            raise ValueError("Number of cores cannot exceed 128 for one node.")
 
         memory, gaussian_memory = self.compute_memory()
         self.runvalues["memory"] = memory
@@ -209,7 +209,7 @@ class Computation:
         if memory - gaussian_memory < 6000:
             # Too little overhead
             raise ValueError("Too much memory required for Gaussian to run properly")
-        if gaussian_memory > 180000:
+        if gaussian_memory > 220000:
             # Too much memory
             raise ValueError("Exceeded max allowed memory")
 
@@ -235,9 +235,9 @@ class Computation:
 
     def compute_memory(self):
         """
-        Return ideal memory value for Irene.
+        Return ideal memory value for Irene/Rome.
 
-        3.75GB per core, 180GB max, Remove 6GB for system.
+        2GB per core, 220GB max, Remove 6GB for system.
         """
         if self.runvalues["memory_in_input"]:
             # Memory defined in input file
@@ -245,24 +245,24 @@ class Computation:
             if self.runvalues["cores"]:
                 # Cores also defined in input file or from command_line: We adjust the number of core requirement
                 # so that the memory required is allocated
-                if gaussian_memory / self.runvalues["cores"] > 3750:
-                    self.runvalues["cores"] = ceil(float(gaussian_memory) / 3750)
-                    memory = 3750 * self.runvalues["cores"]
+                if gaussian_memory / self.runvalues["cores"] > 1600:
+                    self.runvalues["cores"] = ceil(float(gaussian_memory) / 1600)
+                    memory = 1600 * self.runvalues["cores"]
                 else:
-                    memory = 3750 * self.runvalues["cores"]
+                    memory = 1600 * self.runvalues["cores"]
             else:
                 memory = gaussian_memory + 6000
         else:
             # Memory not defined in input
             if self.runvalues["cores"]:
                 # NProc defined in input or from command line
-                # Give 3.75 GB per core, remove overhead, min of 2GB if one core.
-                memory = 3750 * self.runvalues["cores"]
-                gaussian_memory = max(memory - 6000, 2000)
+                # Give 1.6 GB per core, remove overhead, min of 2GB if one core.
+                memory = 1600 * self.runvalues["cores"]
+                gaussian_memory = max(memory - 6000, 1600)
             else:
-                # All memory for 24 cores is available, give Gaussian 75GB to run out of 90 GB available.
-                memory = 90000
-                gaussian_memory = 75000
+                # All memory for 16 cores is available, give Gaussian enough to run.
+                memory = 28500
+                gaussian_memory = 22500
 
         return memory, gaussian_memory
 
@@ -291,7 +291,7 @@ class Computation:
 
         out = [
             "#!/bin/bash\n",
-            "#MSUB -q skylake\n",  # Update if partition changes
+            "#MSUB -q rome\n",  # Update if partition changes
             "#MSUB -A gen14129\n",  # To update with account name if it changes.
             "#MSUB -J " + self.shlexnames["inputfile"] + "\n",
             "#MSUB -N 1\n",
@@ -304,7 +304,7 @@ class Computation:
         if self.runvalues["cores"]:  # e.g. is not None
             out.extend(["#MSUB -n " + str(self.runvalues["cores"]) + "\n"])
         else:
-            out.extend(["#MSUB -n 24\n"])
+            out.extend(["#MSUB -n 16\n"]) # DEfault cpu number
 
         walltime_in_seconds = self.walltime_as_list()
         walltime_in_seconds = (
@@ -333,22 +333,10 @@ class Computation:
         if self.__software == "g16":
             out.extend(
                 [
-                    "module load flavor/gaussian/skylake gaussian/16-C.02\n",
+                    "module load gaussian/16-C.02\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
-                    "\n",
-                ]
-            )
-        elif self.__software == "orca5":
-            out.extend(
-                [
-                    "module load mpi/openmpi/4.1.1\n",
-                    "\n",
-                    "# Setup Orca specific variables\n",
-                    "export ORCA_BIN_DIR=$GEN14129_ALL_CCCWORKDIR/orca5\n",
-                    "export PATH=$PATH:$ORCA_BIN_DIR\n",
-                    "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
                     "\n",
                 ]
             )
@@ -415,11 +403,11 @@ class Computation:
             ]
         )
 
-        # Build and add Gaussian starting line
+        # Build and add start line
         out.extend(["# Start " + self.__software + "\n"])
         if self.__software == "g16":
             out.extend(self.gaussian_start_line())
-        elif self.__software == "orca5" or self.__software == "orca6":
+        elif self.__software == "orca6":
             if not (self.runvalues["nproc_in_input"]):
                 out.extend(
                     [
@@ -460,7 +448,7 @@ class Computation:
                     "done\n",
                 ]
             )
-        elif self.__software == "orca5" or self.__software == "orca6":
+        elif self.__software == "orca6":
             out.extend(
                 [
                     "cp $SCRATCHDIR/*.out $BRIDGE_MSUB_PWD\n",

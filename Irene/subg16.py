@@ -4,7 +4,7 @@
 """
 Entry point for submission of Gaussian16 calculations on Irene
 
-Last Update 2022-01-14 by Emmanuel Nicolas
+Last Update 2025-11-05 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
@@ -154,8 +154,8 @@ def help_epilog():
     """Return additional help message."""
     return """
 Defaults values:
-  Default memory:          160GB
-  Default cores:           24
+  Default memory:          12 GB
+  Default cores:           16
   Default walltime:        24:00:00
 
 Values for number of cores used and memory to use are read in the input file,
