@@ -260,9 +260,9 @@ class Computation:
                 memory = 1600 * self.runvalues["cores"]
                 gaussian_memory = max(memory - 6000, 1600)
             else:
-                # All memory for 16 cores is available, give Gaussian enough to run.
-                memory = 28500
-                gaussian_memory = 22500
+                # All memory for 32 cores is available, give Gaussian enough to run.
+                memory = 56800
+                gaussian_memory = 50800
 
         return memory, gaussian_memory
 
@@ -304,7 +304,7 @@ class Computation:
         if self.runvalues["cores"]:  # e.g. is not None
             out.extend(["#MSUB -n " + str(self.runvalues["cores"]) + "\n"])
         else:
-            out.extend(["#MSUB -n 16\n"]) # DEfault cpu number
+            out.extend(["#MSUB -n 32\n"]) # Default cpu number
 
         walltime_in_seconds = self.walltime_as_list()
         walltime_in_seconds = (
@@ -333,7 +333,7 @@ class Computation:
         if self.__software == "g16":
             out.extend(
                 [
-                    "module load gaussian/16-C.02\n",
+                    "module load flavor/gaussian/amd64 gaussian/16-C.02\n",
                     "\n",
                     "# Setup Gaussian specific variables\n",
                     ". $GAUSSIAN_ROOT/g16/bsd/g16.profile\n",
@@ -507,7 +507,7 @@ class Computation:
         runtime = 3600 * walltime[0] + 60 * walltime[1] + walltime[2] - 60
         start_line = "timeout " + str(runtime) + " "
 
-        # g09 or g16
+        # g16
         start_line += self.__software + " "
 
         # Manage processors
