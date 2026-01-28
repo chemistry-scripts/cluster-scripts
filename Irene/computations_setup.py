@@ -461,6 +461,7 @@ class Computation:
                     "cp $SCRATCHDIR/*.unso $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.uco $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.hess $BRIDGE_MSUB_PWD\n",
+                    "cp $SCRATCHDIR/*.densities $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.cis $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.dat $BRIDGE_MSUB_PWD\n",
                     "cp $SCRATCHDIR/*.mp2nat $BRIDGE_MSUB_PWD\n",
