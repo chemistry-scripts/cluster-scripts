@@ -17,6 +17,9 @@ mkdir -p "$CCCSCRATCHDIR"/rwf
 # Create shortcuts for the scratch
 ln -sTf "$CCCSCRATCHDIR"/ ~/scratch
 
+# Create shortcut for work directory
+ln -sTf "$CCCWORKDIR"/ ~/work
+
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
 read -r mail
