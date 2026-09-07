@@ -1,0 +1,135 @@
+#!/bin/sh
+# ~/.bash_profile: executed by bash(1) for login shells.
+# see /usr/share/doc/bash/examples/startup-files for examples.
+# the files are located in the bash-doc package.
+
+# the default umask is set in /etc/login.defs
+#umask 022
+
+# include .bashrc if it exists
+if [ -f ~/.bashrc ]; then
+    . ~/.bashrc
+fi
+
+#===============================================================
+# ==== Load Modules
+module purge
+module load cpe/25.09
+module load craype-x86-genoa
+
+# Orca 6.
+module use /lus/work/CT8/cad14129/SHARED/Configuration.spack-user-5.0.0/modules/tcl/linux-rhel9-zen4/gcc/13.2.1/zen4
+module load openmpi/4.1.8-jcdl
+export ORCA_BIN_DIR=$WORK_cad14129_SHARED/orca6_1_1
+export PATH=$PATH:$ORCA_BIN_DIR
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR
+
+# Python
+module load python/3.12.1
+
+#===============================================================
+# Define some colors first:
+red='\e[0;31m'
+RED='\e[1;31m'
+blue='\e[0;34m'
+BLUE='\e[1;34m'
+cyan='\e[0;36m'
+CYAN='\e[1;36m'
+NC='\e[0m'              # No Color
+# --> Nice. Has the same effect as using "ansi.sys" in DOS.
+
+#-------------------
+# Personnal Aliases
+#-------------------
+
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+# -> Prevents accidentally clobbering files.
+alias mkdir='mkdir -p'
+
+alias h='history'
+alias j='jobs -l'
+alias r='rlogin'
+alias which='type -all'
+alias ..='cd ..'
+alias path='echo -e ${PATH//:/\\n}'
+alias du='du -kh'
+alias df='df -kTh'
+
+# The 'ls' family (this assumes you use the GNU ls)
+alias la='ls -Al'           # show hidden files
+alias ls='ls -hF --color'	# add colors for filetype recognition
+alias ll='ls -l'            # list files
+alias lx='ls -lXB'          # sort by extension
+alias lk='ls -lSr'          # sort by size
+alias lc='ls -lcr'          # sort by change time
+alias lu='ls -lur'          # sort by access time
+alias lr='ls -lR'           # recursive ls
+alias lt='ls -ltr'          # sort by date
+alias lm='ls -al |more'     # pipe through 'more'
+alias tree='tree -Csu'      # nice alternative to 'ls'
+
+# emacs in no-window mode
+alias emacs="emacs -nw"
+
+# User specific aliases and functions
+# Todo: update for orca relevant functions. A lot of this is actually designed for Gaussian
+
+alias almostFinished="echo '************************************';
+                      echo 'Finished Steps:' ;
+                      grep -r --include '*.log' 'cpu time' $SCRATCHDIR
+                     "
+alias finished="echo '************************************';
+                echo 'Finished Computations:' ;
+                grep -r --include '*.slurmout' --exclude-dir=~/scratch finished ~/*
+               "
+
+alias nbtour="echo '************************************';
+              echo 'Nombre de Tours :' ;
+              grep -r --include '*.log' -c Predicted $SCRATCHDIR
+             "
+
+alias count="echo '************************************';
+             echo 'Number of YESs:' ;
+             grep -r --include '*.log' -c YES $SCRATCHDIR
+            "
+
+alias encours="echo '************************************';
+               echo 'Running Computations: ' ;
+               squeue -u $USER ;
+               echo '************************************';
+               echo 'Total Number of Computations:' ;
+               squeue -u $USER | grep $USER -c
+              "
+
+alias lowFreq="echo '************************************';
+               echo 'Three Lowest Frequencies: ' ;
+               echo '************************************';
+               grep -r --include '*.log' -m 1 Frequencies ~/*
+              "
+
+alias vectors="echo '************************************';
+               echo 'Computed Vectors:';
+               grep -r --include '*.log' -E 'vectors produced|vectors were produced' $SCRATCHDIR | sed 's/\(produced\).*/\1/g'
+              "
+
+alias warning="echo '************************************';
+               echo 'Warning Produced: ' ;
+               grep -r --include '*.log' Warning $SCRATCHDIR
+               grep -r --include '*.log' --exclude-dir=$HOME/scratch Warning ~/*
+              "
+
+alias predictions="find $SCRATCHDIR -name '*.log' -exec sh -c 'echo; echo {}; grep Predicted -B5 {} | tail -6' \;"
+
+alias username="encours nbtour count almostFinished finished"
+
+alias calculations="username vectors warning lowFreq"
+
+alias queue='squeue -u $USER'
+
+alias watchLogs='watch tail -n7 ~/scratch/*/*.{log,out}'
+# Better alternative, only a problem with quotes
+# alias watchLogs='watch "find $SCRATCH -type f \( -regex '.*/*\.\(log\|out\)' \) -exec tail -n10 {} +"'
+
+alias watchQueue='watch -n 10 --color "squeue -u $USER"'

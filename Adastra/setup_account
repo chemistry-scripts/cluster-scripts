@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+###################################################
+# Setup account for easier computing on Adastra cluster
+#
+
+# Safety conversion
+dos2unix ./*
+
+# Create directories
+mkdir -p ~/.local/bin
+
+# Create shortcuts for the scratch
+ln -sTf "$SCRATCHDIR" ~/scratch
+
+# Create shortcut for work directory
+ln -sTf "$WORKDIR" ~/work
+
+# Retrieve email and name from user
+echo -n "Enter your email address and press [ENTER]: "
+read -r mail
+echo -n "Enter your first name and press [ENTER]: "
+read -r firstname
+
+# Copy files and change emails and firstnames when necessary
+sed -e "s/user@server.org/${mail}/" < forward > $OWN_HOMEDIR/.forward
+sed -e "s/username/${firstname}/" < bash_profile > $OWN_HOMEDIR/.bash_profile
+cp -f bashrc $OWN_HOMEDIR/.bashrc
+cp -f emacs $OWN_HOMEDIR/.emacs
+
+
+
+cp -f __init__.py ~/.local/bin/__init__.py
+sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
+sed -e "s/user@server.org/${mail}/" < suborca6.py > ~/.local/bin/suborca6.py
+
+# Change permissions
+chmod +x ~/.local/bin/__init__.py
+chmod +x ~/.local/bin/computations_setup.py
+chmod +x ~/.local/bin/suborca6.py
+
+echo "Your account was set up. You should log off and back on to make sure"
+echo "everything works."
+echo ""
+echo "Report every problem to Emmanuel Nicolas (emmanuel.nicolas -at- cea.fr)"
