@@ -96,7 +96,7 @@ class Computation:
         runvalues["nodes"] = 1
         runvalues["cores"] = "24"
         runvalues["walltime"] = "24:00:00"
-        runvalues["memory"] = 4000  # In MB
+        runvalues["memory"] = 90  # In GB
         runvalues["nproc_in_input"] = False
         runvalues["memory_in_input"] = False
         runvalues["nbo"] = False
@@ -169,9 +169,11 @@ class Computation:
         """
         Return ideal memory value for Adastra
 
-        3.75GB per core, 220GB max, Remove 6GB for system.
-        """
+        3.75GB per core, 768GB max --> 4GB per core, minus overhead for the system.
 
+        TODO: allow for more fine control from user: reuse maxcore from input and multiply by nproc
+        """
+        memory = 3.75 * self.runvalues["cores"]  # in GB
         return memory
 
     def walltime_as_list(self):
@@ -218,6 +220,9 @@ class Computation:
             "#SBATCH --output=%x.%j.slurmout\n",
             "#SBATCH --error=%x.%j.slurmerr\n",
             "#SBATCH --ntasks " + str(self.runvalues["cores"]) + "\n",
+            "#SBATCH --mem="
+            + str(self.compute_memory())
+            + "G\n",  # Memory in GB computed from cores.
             "#SBATCH --time=" + str(self.walltime_in_seconds()) + "\n",
             # "#SBATCH -@ user@server.org:begin,end\n",  # FIXME Question on this: still sending mail?
             "\n",
@@ -344,8 +349,7 @@ class Computation:
                     "# Retrieve NBO Files\n",
                     "cp "
                     + self.runvalues["nbo_basefilename"]
-                    + ".* $SLURM_SUBMIT_DIR 2>/dev/null\n"
-                    "\n",
+                    + ".* $SLURM_SUBMIT_DIR 2>/dev/null\n\n",
                 ]
             )
         out.extend(
