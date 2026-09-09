@@ -32,9 +32,7 @@ class Computation:
         logger.debug("Runvalues cmdline:  %s", self.runvalues)
         # Orca only here. Switch if you want to add extra software/multiple versions
         self.get_values_from_orca_input_file()
-        logger.debug("Runvalues gaussian:  %s", self.runvalues)
-        self.fill_missing_values()
-        logger.debug("Runvalues backfilled:  %s", self.runvalues)
+        logger.debug("Runvalues orca:  %s", self.runvalues)
         self.shlexnames = self.create_shlexnames()
 
     @property
@@ -77,7 +75,6 @@ class Computation:
             [
                 "inputfile",
                 "outputfile",
-                "nodes",
                 "cores",
                 "walltime",
                 "memory",
@@ -93,7 +90,6 @@ class Computation:
         )
         runvalues["inputfile"] = ""
         runvalues["outputfile"] = ""
-        runvalues["nodes"] = 1
         runvalues["cores"] = "24"
         runvalues["walltime"] = "24:00:00"
         runvalues["memory"] = 90  # In GB
@@ -156,8 +152,6 @@ class Computation:
     def fill_from_commandline(self, cmdline_args):
         """Merge command line arguments into runvalues."""
         self.runvalues["inputfile"] = cmdline_args["inputfile"]
-        if cmdline_args["nodes"]:
-            self.runvalues["nodes"] = cmdline_args["nodes"]
         if cmdline_args["cores"]:
             self.runvalues["cores"] = cmdline_args["cores"]
         if cmdline_args["walltime"]:
@@ -173,7 +167,7 @@ class Computation:
 
         TODO: allow for more fine control from user: reuse maxcore from input and multiply by nproc
         """
-        memory = 3.75 * self.runvalues["cores"]  # in GB
+        memory = int(3.75 * float(self.runvalues["cores"]))  # in GB
         return memory
 
     def walltime_as_list(self):
@@ -182,13 +176,9 @@ class Computation:
 
     def walltime_in_seconds(self):
         """Return walltime in seconds."""
-        walltime_in_seconds = self.walltime_as_list()
-        walltime_in_seconds = (
-            3600 * walltime_in_seconds[0]
-            + 60 * walltime_in_seconds[1]
-            + walltime_in_seconds[2]
-        )
-        return walltime_in_seconds
+        duration = self.walltime_as_list()
+        duration = 3600 * duration[0] + 60 * duration[1] + duration[2]
+        return duration
 
     def create_run_file(self, output):
         """
@@ -213,17 +203,15 @@ class Computation:
             "#!/bin/bash\n",
             "#SBATCH --constraint=GENOA\n",  # Update if partition changes
             "#SBATCH --account=cad14129\n",  # To update with account name if it changes.
-            "#SBATCH --job-name=" + self.shlexnames["inputfile"] + "\n",
+            "#SBATCH --job-name=" + self.shlexnames["basename"] + "\n",
             "#SBATCH --nodes 1\n",
             "#SBATCH --cpus-per-task=1\n",
             "#SBATCH --threads-per-core=1\n",
             "#SBATCH --output=%x.%j.slurmout\n",
             "#SBATCH --error=%x.%j.slurmerr\n",
             "#SBATCH --ntasks " + str(self.runvalues["cores"]) + "\n",
-            "#SBATCH --mem="
-            + str(self.compute_memory())
-            + "G\n",  # Memory in GB computed from cores.
-            "#SBATCH --time=" + str(self.walltime_in_seconds()) + "\n",
+            "#SBATCH --mem=" + str(self.compute_memory()) + "G\n",
+            "#SBATCH --time=" + str(int(self.walltime_in_seconds() / 60)) + "\n",
             # "#SBATCH -@ user@server.org:begin,end\n",  # FIXME Question on this: still sending mail?
             "\n",
         ]
@@ -266,13 +254,12 @@ class Computation:
         # Actual calculation setup
         out.extend(
             [
-                "export JOB_NAME=" + self.shlexnames["inputfile"] + "\n",
                 "# Setup Scratch\n",
                 "export TMP_SCRATCH=$SCRATCHDIR/$SLURM_JOB_ID\n",
                 "mkdir -p $TMP_SCRATCH\n",
                 "\n",
                 "# Copy input file\n",
-                "cp -f $JOB_NAME.inp $SCRATCHDIR\n\n",
+                "cp -f " + self.shlexnames["inputfile"] + " $TMP_SCRATCH\n\n",
             ]
         )
         # For all files in "extra_files", check if they exist and copy them to Scratch if they do.
@@ -281,18 +268,13 @@ class Computation:
                 [
                     "if [ -f " + file + " ] \n",
                     "then\n",
-                    "  cp " + file + " $SCRATCHDIR\n",
+                    "  cp " + file + " $TMP_SCRATCH\n",
                     "fi\n\n",
                 ]
             )
         out.extend(
             [
                 "cd $TMP_SCRATCH\n",
-                "\n",
-                "# Print job info in output file\n",  # FIXME is it necessary?
-                'echo "job_id : $BRIDGE_MSUB_JOBID"\n',
-                'echo "job_name : $BRIDGE_MSUB_REQNAME"\n',
-                'echo "$BRIDGE_MSUB_NPROC processes"\n',
                 "\n",
             ]
         )
@@ -317,29 +299,29 @@ class Computation:
             [
                 "## --- Wrap up time! ---\n\n",
                 "# Move files back to original directory\n",
-                "cp $SCRATCHDIR/*.out $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.gbw $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.engrad $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.xyz $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.loc $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.qro $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.uno $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.unso $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.uco $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.hess $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.densities $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.densitiesinfo $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.cis $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.dat $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.mp2nat $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.nat $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.scfp_fod $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.scfp $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.scfr $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*.nbo $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/FILE.47 $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*_property.txt $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $SCRATCHDIR/*spin* $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.out $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.gbw $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.engrad $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.xyz $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.loc $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.qro $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.uno $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.unso $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.uco $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.hess $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.densities $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.densitiesinfo $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.cis $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.dat $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.mp2nat $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.nat $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.scfp_fod $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.scfp $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.scfr $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*.nbo $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/FILE.47 $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*_property.txt $SLURM_SUBMIT_DIR 2>/dev/null\n",
+                "cp $TMP_SCRATCH/*spin* $SLURM_SUBMIT_DIR 2>/dev/null\n",
                 "\n",
             ]
         )
@@ -356,7 +338,7 @@ class Computation:
             [
                 "\n",
                 "# Empty Scratch directory\n",
-                "rm -rf $SCRATCHDIR\n",
+                "rm -rf $TMP_SCRATCH\n",
                 "\n",
                 'echo "Computation finished."\n',
                 "\n",

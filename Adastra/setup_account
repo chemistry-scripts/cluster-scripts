@@ -5,16 +5,7 @@
 #
 
 # Safety conversion
-dos2unix ./*
-
-# Create directories
-mkdir -p ~/.local/bin
-
-# Create shortcuts for the scratch
-ln -sTf "$SCRATCHDIR" ~/scratch
-
-# Create shortcut for work directory
-ln -sTf "$WORKDIR" ~/work
+sed -i 's/\r$//' *
 
 # Retrieve email and name from user
 echo -n "Enter your email address and press [ENTER]: "
@@ -22,17 +13,27 @@ read -r mail
 echo -n "Enter your first name and press [ENTER]: "
 read -r firstname
 
+
+# Create local bin dir for scripts
+mkdir -p ~/.local/bin
+
 # Copy files and change emails and firstnames when necessary
 sed -e "s/user@server.org/${mail}/" < forward > $OWN_HOMEDIR/.forward
 sed -e "s/username/${firstname}/" < bash_profile > $OWN_HOMEDIR/.bash_profile
 cp -f bashrc $OWN_HOMEDIR/.bashrc
 cp -f emacs $OWN_HOMEDIR/.emacs
 
-
-
 cp -f __init__.py ~/.local/bin/__init__.py
 sed -e "s/user@server.org/${mail}/" < computations_setup.py > ~/.local/bin/computations_setup.py
-sed -e "s/user@server.org/${mail}/" < suborca6.py > ~/.local/bin/suborca6.py
+cp -f suborca6.py ~/.local/bin/suborca6.py
+
+# Shortcuts for bashrc/bash_profile files in project homedir
+ln -sTf "${OWN_HOMEDIR}/.bashrc" "${HOMEDIR}/.bashrc"
+ln -sTf "${OWN_HOMEDIR}/.bash_profile" "${HOMEDIR}/.bash_profile"
+
+# Create shortcuts for the scratch and work directories
+ln -sTf "$SCRATCHDIR" ~/scratch
+ln -sTf "$WORKDIR" ~/work
 
 # Change permissions
 chmod +x ~/.local/bin/__init__.py

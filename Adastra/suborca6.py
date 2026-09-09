@@ -33,11 +33,10 @@ def main():
         - Get command-line parameters and replace appropriately
     - Compute missing values
         - Memory
-        - Number of nodes if appropriate
         - Convert filenames to printable values
     - Check parameters
         - Existence of files (or non-existence...)
-        - Compatibility nproc/nodes/memory
+        - Compatibility nproc/memory
     - Build script file
     - Submit script
     """
@@ -57,7 +56,8 @@ def main():
 
     # Retrieve input file name, create output file name
     input_file_name = cmdline_args["inputfile"]
-    script_file_name = input_file_name + ".sh"
+    input_base_name = os.path.splitext(input_file_name)[0]
+    script_file_name = input_base_name + ".sh"
 
     # Check existence of input file
     if not os.path.exists(input_file_name):
@@ -101,9 +101,6 @@ def get_options():
         "-p", "--proc", type=int, help="Number of processors used for the computation"
     )
     parser.add_argument(
-        "-n", "--nodes", type=int, help="Number of nodes used for the computation"
-    )
-    parser.add_argument(
         "-t",
         "--walltime",
         default="24:00:00",
@@ -125,13 +122,11 @@ def get_options():
         sys.exit(2)
 
     # Get values from parser
-    cmdline_args = dict.fromkeys(["inputfile", "walltime", "memory", "cores", "nodes"])
+    cmdline_args = dict.fromkeys(["inputfile", "walltime", "memory", "cores"])
     cmdline_args["inputfile"] = os.path.basename(args.inputfile[0])
     cmdline_args["walltime"] = args.walltime
     if args.proc:
         cmdline_args["cores"] = args.proc
-    if args.nodes:
-        cmdline_args["nodes"] = args.nodes
     if args.memory:
         cmdline_args["memory"] = args.memory
 
@@ -149,7 +144,7 @@ def help_epilog():
     """Return additional help message."""
     return """
 Defaults values:
-  Default memory:          160GB
+  Default memory:          90GB
   Default cores:           24
   Default walltime:        24:00:00
 
