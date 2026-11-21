@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import subprocess
 import sys
@@ -91,27 +92,24 @@ def submit_to_slurm(sh_filename):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python create_orca_input.py <file.xyz> [charge] [multiplicity] [solvent]")
-        print("Example: python create_orca_input.py 3a.xyz 0 1 benzene")
-        print("Note: If solvent is not specified, it defaults to None (gas phase).")
-        sys.exit(1)
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="Create ORCA input and SLURM submission files from an XYZ file.")
+    parser.add_argument("xyz_file", type=str, help="Path to the input XYZ file (e.g., 3a.xyz).")
+    parser.add_argument("-c", "--charge", type=int, default=0, help="Charge of the molecule (default: 0).")
+    parser.add_argument("-m", "--multiplicity", type=int, default=1, help="Multiplicity of the molecule (default: 1).")
+    parser.add_argument("-s", "--solvent", type=str, default=None, help="Solvent for the calculation (default: None, gas phase).")
 
-    xyz_filename = sys.argv[1]
+    # Parse arguments
+    args = parser.parse_args()
 
     # Check if the .xyz file exists
-    if not check_file_exists(xyz_filename):
-        print(f"❌ File {xyz_filename} does not exist.")
+    if not check_file_exists(args.xyz_file):
+        print(f"❌ File {args.xyz_file} does not exist.")
         sys.exit(1)
 
-    # Get charge, multiplicity, and solvent (default: 0, 1, None)
-    charge = int(sys.argv[2]) if len(sys.argv) > 2 else 0
-    multiplicity = int(sys.argv[3]) if len(sys.argv) > 3 else 1
-    solvent = sys.argv[4] if len(sys.argv) > 4 else None
-
     # Create .inp and .sh files
-    create_inp_file(xyz_filename, charge, multiplicity, solvent)
-    sh_filename = create_sh_file(xyz_filename)
+    create_inp_file(args.xyz_file, charge=args.charge, multiplicity=args.multiplicity, solvent=args.solvent)
+    sh_filename = create_sh_file(args.xyz_file)
 
     # Automatically submit to SLURM
     submit_to_slurm(sh_filename)
