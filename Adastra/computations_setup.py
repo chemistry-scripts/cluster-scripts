@@ -244,8 +244,8 @@ class Computation:
                 "# Move files back to the original directory\n",
             ]
         )
-        for glob in self.OUTPUT_GLOBS:
-            out.append(f"cp $TMP_SCRATCH/{glob} $SLURM_SUBMIT_DIR 2>/dev/null\n")
+        for file_glob in self.OUTPUT_GLOBS:
+            out.append(f"cp $TMP_SCRATCH/{file_glob} $SLURM_SUBMIT_DIR 2>/dev/null\n")
         if self.runvalues["nbo"]:
             out.extend(
                 [
