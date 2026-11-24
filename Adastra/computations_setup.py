@@ -12,212 +12,151 @@ import logging
 import os
 import re
 import shlex
+from typing import ClassVar
+
+
+def default_run_values():
+    """Return the run values with their default settings."""
+    return {
+        "inputfile": "",
+        "cores": 24,
+        "walltime": "24:00:00",
+        "memory": 90,  # In GB
+        "nproc_in_input": False,
+        "nbo": False,
+        "nbo_basefilename": "",
+        "extra_files": [],
+    }
 
 
 class Computation:
-    """
-    Class representing the computation that will be run.
-    """
+    """Class representing the computation that will be run."""
+
+    # Files to copy back from the scratch directory once the job finishes.
+    OUTPUT_GLOBS: ClassVar[list[str]] = [
+        "*.out",
+        "*.gbw",
+        "*.engrad",
+        "*.xyz",
+        "*.loc",
+        "*.qro",
+        "*.uno",
+        "*.unso",
+        "*.uco",
+        "*.hess",
+        "*.densities",
+        "*.densitiesinfo",
+        "*.cis",
+        "*.dat",
+        "*.mp2nat",
+        "*.nat",
+        "*.scfp_fod",
+        "*.scfp",
+        "*.scfr",
+        "*.nbo",
+        "FILE.47",
+        "*_property.txt",
+        "*spin*",
+    ]
 
     def __init__(self, input_file, software, cmdline_args):
-        """
-        Class Builder
-        """
         logger = logging.getLogger()
-        self.__input_file = input_file
-        self.__software = software
-        self.__runvalues = self.default_run_values()
-        logger.debug("Runvalues default:  %s", self.runvalues)
+        self.input_file = input_file
+        self.software = software
+        self.basename = os.path.splitext(input_file)[0]
+        self.shlexnames = {
+            "inputfile": shlex.quote(input_file),
+            "basename": shlex.quote(self.basename),
+        }
+        self.runvalues = default_run_values()
+        logger.debug("Runvalues default: %s", self.runvalues)
         self.fill_from_commandline(cmdline_args)
-        logger.debug("Runvalues cmdline:  %s", self.runvalues)
-        # Orca only here. Switch if you want to add extra software/multiple versions
+        logger.debug("Runvalues cmdline: %s", self.runvalues)
+        # Only ORCA is currently supported.
         self.get_values_from_orca_input_file()
-        logger.debug("Runvalues orca:  %s", self.runvalues)
-        self.shlexnames = self.create_shlexnames()
-
-    @property
-    def runvalues(self):
-        """Dict containing all data required to run the computation."""
-        return self.__runvalues
-
-    @runvalues.setter
-    def runvalues(self, value):
-        self.__runvalues = value
-
-    @property
-    def input_file(self):
-        """Input File name."""
-        return self.__input_file
-
-    @input_file.setter
-    def input_file(self, value):
-        self.__input_file = value
-
-    @property
-    def software(self):
-        """Software name."""
-        return self.__software
-
-    @software.setter
-    def software(self, value):
-        self.__software = value
+        logger.debug("Runvalues orca:    %s", self.runvalues)
 
     @property
     def walltime(self):
-        """Walltime."""
-        return self.__runvalues["walltime"]
+        """Walltime as ``"HH:MM:SS"``."""
+        return self.runvalues["walltime"]
 
-    @staticmethod
-    def default_run_values():
-        """Fill default runvalues."""
-        # Setup runvalues
-        runvalues = dict.fromkeys(
-            [
-                "inputfile",
-                "outputfile",
-                "cores",
-                "walltime",
-                "memory",
-                "chk",
-                "oldchk",
-                "rwf",
-                "nproc_in_input",
-                "memory_in_input",
-                "nbo",
-                "nbo_basefilename",
-                "cluster_section",
-            ]
+    def fill_from_commandline(self, cmdline_args):
+        """Merge non-empty command line arguments into the run values."""
+        self.runvalues["inputfile"] = cmdline_args["inputfile"]
+        self.runvalues["cores"] = cmdline_args.get("cores") or self.runvalues["cores"]
+        self.runvalues["walltime"] = (
+            cmdline_args.get("walltime") or self.runvalues["walltime"]
         )
-        runvalues["inputfile"] = ""
-        runvalues["outputfile"] = ""
-        runvalues["cores"] = "24"
-        runvalues["walltime"] = "24:00:00"
-        runvalues["memory"] = 90  # In GB
-        runvalues["nproc_in_input"] = False
-        runvalues["memory_in_input"] = False
-        runvalues["nbo"] = False
-        runvalues["nbo_basefilename"] = (
-            ""  # TODO Check FILE option in orca --> p.711 within NBOKEYLIST
+        self.runvalues["memory"] = (
+            cmdline_args.get("memory") or self.runvalues["memory"]
         )
-        runvalues["extra_files"] = []
-        return runvalues
 
     def get_values_from_orca_input_file(self):
-        """Parse Orca input file and retrieve useful information"""
-        with open(self.input_file, "r") as file:
-            # Go through lines and test if they contain nproc, mem, etc. related
-            # directives.
-            for line in file:
-                if "pal" in line.lower():
-                    # Line such as "! Opt PAL12 Freq"
-                    extract = re.search(r"pal([0-9]+)", line, flags=re.IGNORECASE)
-                    if extract:
-                        self.runvalues["nproc_in_input"] = True
-                        self.runvalues["cores"] = int(extract.group()[3:])
-                if "nprocs" in line.lower():
-                    # Line is %pal nprocs 12 end, with possible line breaks before nprocs and after 12.
-                    self.runvalues["nproc_in_input"] = True
-                    self.runvalues["cores"] = int(
-                        re.search(r"nprocs\s+([0-9]+)", line).group().split()[1]
+        """Read cores, NBO settings and extra input files from the ORCA input."""
+        with open(self.input_file) as input_file:
+            for line in input_file:
+                lowered = line.lower()
+                # Number of cores, either "! ... PAL12 ..." or "%pal nprocs 12 ..."
+                match = re.search(r"pal\s*(\d+)", line, re.IGNORECASE)
+                if match:
+                    self.runvalues.update(
+                        nproc_in_input=True, cores=int(match.group(1))
                     )
-                if "nbo6" in line.lower() or "npa6" in line.lower():
+                match = re.search(r"nprocs\s+(\d+)", lowered)
+                if match:
+                    self.runvalues.update(
+                        nproc_in_input=True, cores=int(match.group(1))
+                    )
+                if "nbo6" in lowered or "npa6" in lowered:
                     self.runvalues["nbo"] = True
                 if "FILE=" in line:
                     # FILE=FILENAME
-                    self.runvalues["nbo_basefilename"] = line.split("=")[1].rstrip(
-                        " \n"
-                    )
-                if "moinp" in line.lower():
-                    # %moinp "filename.gbw"
-                    self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
-                if "inhessname" in line.lower():
-                    # InHessName "FirstJob.hess"
+                    self.runvalues["nbo_basefilename"] = line.split("=", 1)[1].strip()
+                # Extra input files referenced by the calculation.
+                if "moinp" in lowered or "inhessname" in lowered:
                     self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
                 if "NEB_End_XYZFile" in line:
-                    # NEB_End_XYZFile "NEB_end_file.xyz"
                     self.runvalues["extra_files"].append(line.split()[1].strip('"'))
-                # if ".xyz" in line:
-                # There is a line containing an .xyz file name. We collected all names and add them
-                # TODO!!!!!
-                # self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
-
-    def create_shlexnames(self):
-        """Return dictionary containing shell escaped names for all possible files."""
-        shlexnames = {}
-        input_basename = os.path.splitext(self.runvalues["inputfile"])[0]
-        shlexnames["inputfile"] = shlex.quote(self.runvalues["inputfile"])
-        shlexnames["basename"] = shlex.quote(input_basename)
-        return shlexnames
-
-    def fill_from_commandline(self, cmdline_args):
-        """Merge command line arguments into runvalues."""
-        self.runvalues["inputfile"] = cmdline_args["inputfile"]
-        if cmdline_args["cores"]:
-            self.runvalues["cores"] = cmdline_args["cores"]
-        if cmdline_args["walltime"]:
-            self.runvalues["walltime"] = cmdline_args["walltime"]
-        if cmdline_args["memory"]:
-            self.runvalues["memory"] = cmdline_args["memory"]
 
     def compute_memory(self):
-        """
-        Return ideal memory value for Adastra
-
-        3.75GB per core, 768GB max --> 4GB per core, minus overhead for the system.
-
-        TODO: allow for more fine control from user: reuse maxcore from input and multiply by nproc
-        """
-        memory = int(3.75 * float(self.runvalues["cores"]))  # in GB
-        return memory
-
-    def walltime_as_list(self):
-        """Return walltime as list: [20,00,00]"""
-        return [int(x) for x in self.runvalues["walltime"].split(":")]
+        """Return the ideal amount of memory in GB for the given number of cores."""
+        # 3.75 GB per core leaves some headroom for the system.
+        return int(3.75 * int(self.runvalues["cores"]))
 
     def walltime_in_seconds(self):
-        """Return walltime in seconds."""
-        duration = self.walltime_as_list()
-        duration = 3600 * duration[0] + 60 * duration[1] + duration[2]
-        return duration
+        """Return the walltime expressed in seconds."""
+        hours, minutes, seconds = (
+            int(x) for x in self.runvalues["walltime"].split(":")
+        )
+        return 3600 * hours + 60 * minutes + seconds
 
     def create_run_file(self, output):
-        """
-        Create .sh file that contains the script to actually run on the server.
-
-        Structure:
-            - SBATCH instructions for the queue manager
-            - setup software on the nodes
-            - creation of scratch, copy necessary files
-            - Run calculation
-            - Copy appropriate files back to $HOME
-            - Cleanup scratch
-        """
-        # Setup logging
+        """Write the shell script that runs the computation on the cluster."""
         logger = logging.getLogger()
+        logger.debug("Runvalues: %s", self.runvalues)
 
-        # Setup names to use in file
-        logger.debug("Runvalues:  %s", self.runvalues)
-        logger.debug("Shlexnames: %s", self.shlexnames)
+        out = []
 
-        out = [
-            "#!/bin/bash\n",
-            "#SBATCH --constraint=GENOA\n",  # Update if partition changes
-            "#SBATCH --account=cad14129\n",  # To update with account name if it changes.
-            "#SBATCH --job-name=" + self.shlexnames["basename"] + "\n",
-            "#SBATCH --nodes 1\n",
-            "#SBATCH --cpus-per-task=1\n",
-            "#SBATCH --threads-per-core=1\n",
-            "#SBATCH --output=%x.%j.slurmout\n",
-            "#SBATCH --error=%x.%j.slurmerr\n",
-            "#SBATCH --ntasks " + str(self.runvalues["cores"]) + "\n",
-            "#SBATCH --mem=" + str(self.compute_memory()) + "G\n",
-            "#SBATCH --time=" + str(int(self.walltime_in_seconds() / 60)) + "\n",
-            # "#SBATCH -@ user@server.org:begin,end\n",  # FIXME Question on this: still sending mail?
-            "\n",
-        ]
+        # --- SLURM directives ---
+        out.append("#!/bin/bash\n")
+        out.append("#SBATCH --constraint=GENOA\n")
+        out.append("#SBATCH --account=cad14129\n")
+        out.append("#SBATCH --job-name=" + self.shlexnames["basename"] + "\n")
+        for option in (
+            "--nodes 1",
+            "--cpus-per-task=1",
+            "--threads-per-core=1",
+            "--output=%x.%j.slurmout",
+            "--error=%x.%j.slurmerr",
+            "--ntasks " + str(self.runvalues["cores"]),
+            "--mem=" + str(self.compute_memory()) + "G",
+            "--time=" + str(self.walltime_in_seconds() // 60),
+        ):
+            out.append("#SBATCH " + option + "\n")
+        out.append("\n")
 
-        # Starting modules/loading etc.
-        #
+        # --- Load modules and set up ORCA ---
         out.extend(
             [
                 "# Load Modules\n",
@@ -232,14 +171,14 @@ class Computation:
                 "export OMP_NUM_THREADS=$SLURM_NTASKS\n",
                 "export FI_PROVIDER=shm\n",
                 "\n",
-                "# Put orca in the path\n",
+                "# Put ORCA in the path\n",
                 "export ORCA_BIN_DIR=$WORK_cad14129_SHARED/orca_6_1_1\n",
                 "export PATH=$PATH:$ORCA_BIN_DIR\n",
                 "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORCA_BIN_DIR\n",
             ]
         )
 
-        # Manage NBO settings
+        # --- NBO setup ---
         if self.runvalues["nbo"]:
             out.extend(
                 [
@@ -251,7 +190,7 @@ class Computation:
                 ]
             )
 
-        # Actual calculation setup
+        # --- Scratch directory and input files ---
         out.extend(
             [
                 "# Setup Scratch\n",
@@ -262,29 +201,23 @@ class Computation:
                 "cp -f " + self.shlexnames["inputfile"] + " $TMP_SCRATCH\n\n",
             ]
         )
-        # For all files in "extra_files", check if they exist and copy them to Scratch if they do.
-        for file in self.runvalues["extra_files"]:
+        for extra_file in self.runvalues["extra_files"]:
             out.extend(
                 [
-                    "if [ -f " + file + " ] \n",
+                    f"if [ -f {extra_file} ]\n",
                     "then\n",
-                    "  cp " + file + " $TMP_SCRATCH\n",
+                    f"  cp {extra_file} $TMP_SCRATCH\n",
                     "fi\n\n",
                 ]
             )
-        out.extend(
-            [
-                "cd $TMP_SCRATCH\n",
-                "\n",
-            ]
-        )
+        out.extend(["cd $TMP_SCRATCH\n", "\n"])
 
-        # Build and add start line
-        out.extend(["# Start " + self.__software + "\n"])
-        if not (self.runvalues["nproc_in_input"]):
+        # --- Run the calculation ---
+        out.append("# Start " + self.software + "\n")
+        if not self.runvalues["nproc_in_input"]:
             out.extend(
                 [
-                    "# Add nprocs directive to header of "
+                    "# Add nprocs directive to the header of "
                     + self.shlexnames["inputfile"]
                     + "\n",
                     "sed -i '1s;^;%pal\\n  nprocs '$SLURM_NTASKS'\\nend\\n\\n;' "
@@ -293,42 +226,21 @@ class Computation:
                     "\n",
                 ]
             )
-        out.extend(self.orca_start_line())
+        out.append(self.orca_start_line())
 
+        # --- Copy results back and clean up ---
         out.extend(
             [
                 "## --- Wrap up time! ---\n\n",
-                "# Move files back to original directory\n",
-                "cp $TMP_SCRATCH/*.out $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.gbw $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.engrad $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.xyz $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.loc $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.qro $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.uno $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.unso $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.uco $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.hess $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.densities $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.densitiesinfo $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.cis $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.dat $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.mp2nat $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.nat $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.scfp_fod $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.scfp $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.scfr $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*.nbo $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/FILE.47 $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*_property.txt $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "cp $TMP_SCRATCH/*spin* $SLURM_SUBMIT_DIR 2>/dev/null\n",
-                "\n",
+                "# Move files back to the original directory\n",
             ]
         )
+        for glob in self.OUTPUT_GLOBS:
+            out.append(f"cp $TMP_SCRATCH/{glob} $SLURM_SUBMIT_DIR 2>/dev/null\n")
         if self.runvalues["nbo"]:
             out.extend(
                 [
-                    "# Retrieve NBO Files\n",
+                    "# Retrieve NBO files\n",
                     "cp "
                     + self.runvalues["nbo_basefilename"]
                     + ".* $SLURM_SUBMIT_DIR 2>/dev/null\n\n",
@@ -337,7 +249,7 @@ class Computation:
         out.extend(
             [
                 "\n",
-                "# Empty Scratch directory\n",
+                "# Empty the scratch directory\n",
                 "rm -rf $TMP_SCRATCH\n",
                 "\n",
                 'echo "Computation finished."\n',
@@ -345,20 +257,13 @@ class Computation:
             ]
         )
 
-        # Write .sh file
         with open(output, "w") as script_file:
             script_file.writelines(out)
 
     def orca_start_line(self):
-        """Start line builder"""
-        # Create timeout line
+        """Return the shell command that launches ORCA with a timeout."""
         runtime = self.walltime_in_seconds() - 60
-        start_line = "timeout " + str(runtime) + " "
-        # Orca location
-        start_line += "$ORCA_BIN_DIR/orca "
-        # Add input file
-        start_line += self.shlexnames["inputfile"]
-        # Add output file
-        start_line += " > " + self.shlexnames["basename"] + ".out\n"
-
-        return start_line
+        return (
+            f"timeout {runtime} $ORCA_BIN_DIR/orca "
+            f"{self.shlexnames['inputfile']} > {self.shlexnames['basename']}.out\n"
+        )

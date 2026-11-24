@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Entry point for submission of Orca 6 calculations on Adastra
+Entry point for submission of Orca 6 calculations on Adastra.
 
 Last Update 2026-09-07 by Emmanuel Nicolas
 email emmanuel.nicolas -at- cea.fr
@@ -17,86 +17,21 @@ import sys
 from computations_setup import Computation
 
 
-def main():
-    """
-    Set up the computation and submit it to the job scheduler.
-
-    Precedence of parameters for submission:
-        - Command line parameters
-        - Gaussian script
-        - Default parameters
-
-    Structure of program:
-    - Define runvalues:
-        - Fill Defaults
-        - Parse file and replace appropriately
-        - Get command-line parameters and replace appropriately
-    - Compute missing values
-        - Memory
-        - Convert filenames to printable values
-    - Check parameters
-        - Existence of files (or non-existence...)
-        - Compatibility nproc/memory
-    - Build script file
-    - Submit script
-    """
-    # Setup logging
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    stream_handler = logging.StreamHandler()
-
-    formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(message)s")
-    stream_handler.setFormatter(formatter)
-
-    logger.addHandler(stream_handler)
-
-    # Get parameters from command line
-    cmdline_args = get_options()
-
-    # Retrieve input file name, create output file name
-    input_file_name = cmdline_args["inputfile"]
-    input_base_name = os.path.splitext(input_file_name)[0]
-    script_file_name = input_base_name + ".sh"
-
-    # Check existence of input file
-    if not os.path.exists(input_file_name):
-        print("=========== !!! WARNING !!! ===========")
-        print("The input file was not found.")
-        sys.exit()
-    # Check that file input.sh does not exist, not to start twice the same job
-    if os.path.exists(script_file_name):
-        print("=========== !!! WARNING !!! ===========")
-        print(" The corresponding .sh file already exists ")
-        print("Make sure it is not a mistake, erase it and rerun the script")
-        print("Alternatively, you can submit the job directly with:")
-        print(f"ccc_msub {shlex.quote(script_file_name)}")
-        sys.exit()
-    # Avoid end of line problems due to conversion between Windows and Unix
-    # file endings
-    with open(input_file_name, "r+") as input_file:
-        text = input_file.read().replace("\r\n", "\n")
-        input_file.seek(0)
-        input_file.write(text)
-        input_file.truncate()
-
-    # Create computation object
-    computation = Computation(input_file_name, "orca6", cmdline_args)
-
-    # Create run file for gaussian
-    computation.create_run_file(script_file_name)
-
-    # Submit the script
-    os.system(f"sbatch {shlex.quote(script_file_name)}")
-    print(f"job {input_file_name} submitted with a walltime of {computation.walltime} hours")
-
-
 def get_options():
-    """Check command line options and accordingly set computation parameters."""
+    """Parse and return the command line options for the computation."""
     parser = argparse.ArgumentParser(
-        description=help_description(), epilog=help_epilog()
+        description="Setup and submit an ORCA job to the SLURM queueing system on "
+        "Adastra.",
+        epilog=(
+            "Defaults values:\n"
+            "  Default memory:          90GB\n"
+            "  Default cores:           24\n"
+            "  Default walltime:        24:00:00\n\n"
+            "Values for number of cores and memory are read from the input file, "
+            "but are overridden if command line arguments are provided."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.formatter_class = argparse.RawDescriptionHelpFormatter
     parser.add_argument(
         "-p", "--proc", type=int, help="Number of processors used for the computation"
     )
@@ -104,7 +39,6 @@ def get_options():
         "-t",
         "--walltime",
         default="24:00:00",
-        type=str,
         help="Maximum time allowed for the computation",
     )
     parser.add_argument(
@@ -113,44 +47,55 @@ def get_options():
         type=int,
         help="Amount of memory allowed for the computation, in MB",
     )
-    parser.add_argument("inputfile", type=str, nargs=1, help="The input file to submit")
+    parser.add_argument("inputfile", nargs=1, help="The input file to submit")
 
-    try:
-        args = parser.parse_args()
-    except argparse.ArgumentError as error:
-        print(str(error))  # Print something like "option -a not recognized"
-        sys.exit(2)
+    args = parser.parse_args()
 
-    # Get values from parser
-    cmdline_args = dict.fromkeys(["inputfile", "walltime", "memory", "cores"])
-    cmdline_args["inputfile"] = os.path.basename(args.inputfile[0])
-    cmdline_args["walltime"] = args.walltime
-    if args.proc:
-        cmdline_args["cores"] = args.proc
-    if args.memory:
-        cmdline_args["memory"] = args.memory
-
-    return cmdline_args
+    return {
+        "inputfile": os.path.basename(args.inputfile[0]),
+        "walltime": args.walltime,
+        "cores": args.proc,
+        "memory": args.memory,
+    }
 
 
-def help_description():
-    """Return description of program for help message."""
-    return """
-Setup and submit an ORCA job to the SLURM queueing system on Adastra.
-"""
+def main():
+    """Set up the computation and submit it to the job scheduler."""
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s :: %(levelname)s :: %(message)s"
+    )
 
+    args = get_options()
+    input_file = args["inputfile"]
+    script_file = os.path.splitext(input_file)[0] + ".sh"
 
-def help_epilog():
-    """Return additional help message."""
-    return """
-Defaults values:
-  Default memory:          90GB
-  Default cores:           24
-  Default walltime:        24:00:00
+    # Refuse to run if the input file is missing.
+    if not os.path.exists(input_file):
+        print("=========== !!! WARNING !!! ===========")
+        print("The input file was not found.")
+        sys.exit(1)
 
-Values for number of cores used and memory to use are read in the input file,
-but are overridden if command line arguments are provided.
-"""
+    # Refuse to run twice: a leftover .sh file would resubmit the same job.
+    if os.path.exists(script_file):
+        print("=========== !!! WARNING !!! ===========")
+        print(" The corresponding .sh file already exists ")
+        print("Make sure it is not a mistake, erase it and rerun the script")
+        print("Alternatively, you can submit the job directly with:")
+        print(f"ccc_msub {shlex.quote(script_file)}")
+        sys.exit(1)
+
+    # Normalize Windows line endings in the input file.
+    with open(input_file, "r+") as f:
+        text = f.read().replace("\r\n", "\n")
+        f.seek(0)
+        f.write(text)
+        f.truncate()
+
+    computation = Computation(input_file, "orca6", args)
+    computation.create_run_file(script_file)
+
+    os.system(f"sbatch {shlex.quote(script_file)}")
+    print(f"job {input_file} submitted with a walltime of {computation.walltime} hours")
 
 
 if __name__ == "__main__":
