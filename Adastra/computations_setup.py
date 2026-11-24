@@ -8,6 +8,7 @@ email emmanuel.nicolas -at- cea.fr
 Requires Python3 to be installed.
 """
 
+import glob
 import logging
 import os
 import re
@@ -118,6 +119,14 @@ class Computation:
                     self.runvalues["extra_files"].append(line.split()[-1].strip('"'))
                 if "NEB_End_XYZFile" in line:
                     self.runvalues["extra_files"].append(line.split()[1].strip('"'))
+
+        # Also collect all potential coexisting XYZ geometry files that share the
+        # basename of the input file (e.g. "job.xyz", "job_1.xyz", "job_end.xyz"),
+        # so they are copied to the scratch directory and available during the run.
+        input_dir = os.path.dirname(self.input_file) or "."
+        stem = os.path.basename(self.basename)
+        for xyz_file in glob.glob(os.path.join(input_dir, f"{stem}*.xyz")):
+            self.runvalues["extra_files"].append(os.path.basename(xyz_file))
 
     def compute_memory(self):
         """Return the ideal amount of memory in GB for the given number of cores."""
